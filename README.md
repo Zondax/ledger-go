@@ -9,7 +9,7 @@ https://github.com/golang/dep
 ## Ubuntu
 Update dependencies using the following:
 ```
-dep ensure -update
+dep ensure 
 ```
 
 # Building
