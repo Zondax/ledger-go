@@ -1,4 +1,23 @@
+/*******************************************************************************
+*   (c) 2016 Ledger
+*   (c) 2018 ZondaX GmbH
+*
+*  Licensed under the Apache License, Version 2.0 (the "License");
+*  you may not use this file except in compliance with the License.
+*  You may obtain a copy of the License at
+*
+*      http://www.apache.org/licenses/LICENSE-2.0
+*
+*  Unless required by applicable law or agreed to in writing, software
+*  distributed under the License is distributed on an "AS IS" BASIS,
+*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+*  See the License for the specific language governing permissions and
+*  limitations under the License.
+********************************************************************************/
 
+// A simple command line tool that outputs json messages representing transactions
+// Usage: samples [0-3] [binary|text]
+// Note: Use build_samples.sh script to update correctly update dependencies
 
 package main
 
@@ -6,12 +25,17 @@ import (
     "fmt"
     "errors"
     "github.com/brejski/hid"
+    "github.com/zondax/ledger/samples"
+	"os"
+	"encoding/binary"
 )
+
+var codec = binary.BigEndian
 
 const (
     VendorLedger = 0x2c97
     ProductNano  = 1
-    Channel      = 0x0101
+    Channel      = 0x8001
     PacketSize   = 64
 )
 
@@ -62,14 +86,83 @@ type Device interface {
     ReadError() error
 }
 
-func main() {
+// WrapCommandAPDU turns the command into a sequence of 64 byte packets
+func WrapCommandAPDU(channel uint16, command []byte, packetSize int, ble bool) []byte {
+	if packetSize < 3 {
+		panic("packet size must be at least 3")
+	}
 
+	var sequenceIdx uint16
+	var offset, extraHeaderSize, blockSize int
+	var result = make([]byte, 64)
+	var buf = result
+
+	if !ble {
+		codec.PutUint16(buf, channel)
+		extraHeaderSize = 2
+		buf = buf[2:]
+	}
+
+	buf[0] = 0x05
+	codec.PutUint16(buf[1:], sequenceIdx)
+	codec.PutUint16(buf[3:], uint16(len(command)))
+	sequenceIdx++
+	buf = buf[5:]
+
+	blockSize = packetSize - 5 - extraHeaderSize
+	copy(buf, command)
+	offset += blockSize
+
+	for offset < len(command) {
+		// TODO: optimize this
+		end := len(result)
+		result = append(result, make([]byte, 64)...)
+		buf = result[end:]
+		if !ble {
+			codec.PutUint16(buf, channel)
+			buf = buf[2:]
+		}
+		buf[0] = 0x05
+		codec.PutUint16(buf[1:], sequenceIdx)
+		sequenceIdx++
+		buf = buf[3:]
+
+		blockSize = packetSize - 3 - extraHeaderSize
+		copy(buf, command[offset:])
+		offset += blockSize
+	}
+
+	return result
+}
+
+
+func main() {
+    messages := samples.GetMessages()
     ledger, err := FindLedger()
     if err != nil {
-        fmt.Println("Could not find ledger")
+        fmt.Printf("Could not find ledger.")
+        os.Exit(-1)
     }
     if ledger != nil {
-
-    }
+		header := make([]byte, 4)
+		header[0] = 0x80;
+		header[1] = 0x01;
+		header[2] = 0x01;
+		header[3] = 0x01;
+		fullMessage := append(header, messages[0].GetSignBytes()...)
+		fmt.Println(fullMessage)
+		err = ledger.device.Write(fullMessage)
+		if err != nil {
+			fmt.Printf("Error sending message to ledger")
+			os.Exit(-1)
+		}
+		input := ledger.device.ReadCh()
+		buf := <-input
+		swOffset := len(buf) - 2
+		sw := codec.Uint16(buf[swOffset:])
+		if sw != 0x9000 {
+			fmt.Printf("Invalid status %04x", sw)
+		}
+	}
 }
 
