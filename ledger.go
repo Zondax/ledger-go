@@ -28,10 +28,16 @@ import (
     "github.com/zondax/ledger/samples"
 	"os"
 	"encoding/binary"
+	"encoding/hex"
 )
 
 var codec = binary.BigEndian
-
+var (
+	errTooShort        = errors.New("too short")
+	errInvalidChannel  = errors.New("invalid channel")
+	errInvalidSequence = errors.New("invalid sequence")
+	errInvalidTag      = errors.New("invalid tag")
+)
 const (
     VendorLedger = 0x2c97
     ProductNano  = 1
@@ -135,9 +141,76 @@ func WrapCommandAPDU(channel uint16, command []byte, packetSize int, ble bool) [
 	return result
 }
 
+func validatePrefix(buf []byte, channel, sequenceIdx uint16, ble bool) ([]byte, error) {
+	if !ble {
+		if codec.Uint16(buf) != channel {
+			return nil, errInvalidChannel
+		}
+		buf = buf[2:]
+	}
+
+	if buf[0] != 0x05 {
+		return nil, errInvalidTag
+	}
+	if codec.Uint16(buf[1:]) != sequenceIdx {
+		return nil, errInvalidSequence
+	}
+	return buf[3:], nil
+}
+
+// UnwrapResponseAPDU parses a response of 64 byte packets into the real data
+func UnwrapResponseAPDU(channel uint16, dev <-chan []byte, packetSize int, ble bool) ([]byte, error) {
+	var err error
+	var sequenceIdx uint16
+	var extraHeaderSize int
+	if !ble {
+		extraHeaderSize = 2
+	}
+	buf := <-dev
+	if len(buf) < 5+extraHeaderSize+5 {
+		return nil, errTooShort
+	}
+
+	buf, err = validatePrefix(buf, channel, sequenceIdx, ble)
+	if err != nil {
+		return nil, err
+	}
+
+	responseLength := int(codec.Uint16(buf))
+	buf = buf[2:]
+	result := make([]byte, responseLength)
+	out := result
+
+	blockSize := packetSize - 5 - extraHeaderSize
+	if blockSize > len(buf) {
+		blockSize = len(buf)
+	}
+	copy(out, buf[:blockSize])
+
+	// if there is anything left to read...
+	for len(out) > blockSize {
+		out = out[blockSize:]
+		buf = <-dev
+
+		sequenceIdx++
+		buf, err = validatePrefix(buf, channel, sequenceIdx, ble)
+		if err != nil {
+			return nil, err
+		}
+
+		blockSize = packetSize - 3 - extraHeaderSize
+		if blockSize > len(buf) {
+			blockSize = len(buf)
+		}
+		copy(out, buf[:blockSize])
+	}
+	return result, nil
+}
+
 
 func main() {
     messages := samples.GetMessages()
+
     ledger, err := FindLedger()
     if err != nil {
         fmt.Printf("Could not find ledger.")
@@ -150,19 +223,34 @@ func main() {
 		header[2] = 0x01;
 		header[3] = 0x01;
 		fullMessage := append(header, messages[0].GetSignBytes()...)
+
 		fmt.Println(fullMessage)
-		err = ledger.device.Write(fullMessage)
+		adpu := WrapCommandAPDU(Channel, fullMessage, PacketSize, false)
+
+		// write all the packets
+		err := ledger.device.Write(adpu[:PacketSize])
 		if err != nil {
-			fmt.Printf("Error sending message to ledger")
+			fmt.Printf("Could not write to ledger.")
 			os.Exit(-1)
 		}
-		input := ledger.device.ReadCh()
-		buf := <-input
-		swOffset := len(buf) - 2
-		sw := codec.Uint16(buf[swOffset:])
-		if sw != 0x9000 {
-			fmt.Printf("Invalid status %04x", sw)
+		for len(adpu) > PacketSize {
+			adpu = adpu[PacketSize:]
+			err = ledger.device.Write(adpu[:PacketSize])
+			if err != nil {
+				fmt.Printf("Could not write to ledger.")
+				os.Exit(-1)
+			}
 		}
+
+		input := ledger.device.ReadCh()
+		response, err := UnwrapResponseAPDU(Channel, input, PacketSize, false)
+
+		swOffset := len(response) - 2
+		sw := codec.Uint16(response[swOffset:])
+		if sw != 0x9000 {
+			fmt.Errorf("Invalid status %04x", sw)
+		}
+		fmt.Printf("Signature:" + hex.EncodeToString(response[:swOffset]))
 	}
 }
 
