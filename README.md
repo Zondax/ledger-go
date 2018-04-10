@@ -6,7 +6,7 @@ This project is work in progress. Some aspects are subject to change.
 Apart from cloning, be sure you install dep dependency management tool
 https://github.com/golang/dep
 
-## Ubuntu
+## Setup
 Update dependencies using the following:
 ```
 dep ensure 
@@ -20,4 +20,5 @@ go build ledger.go
 # Running
 ./ledger
 
-It should print nothing if ledger is correctly detected or error otherwise.
+Make sure that the app is launched in the Ledger before starting this command and Ledger is connected to the USB port.
+This command line tool will try to send a simple json transaction and will return a signature when user agrees to sign.
