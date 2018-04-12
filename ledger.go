@@ -25,10 +25,10 @@ import (
     "fmt"
     "errors"
     "github.com/brejski/hid"
-    "github.com/zondax/ledger/samples"
 	"os"
 	"encoding/binary"
 	"encoding/hex"
+	"github.com/zondax/ledger/samples"
 )
 
 var codec = binary.BigEndian
