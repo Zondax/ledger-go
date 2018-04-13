@@ -1,5 +1,4 @@
 /*******************************************************************************
-*   (c) 2016 Ledger
 *   (c) 2018 ZondaX GmbH
 *
 *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,10 +13,6 @@
 *  See the License for the specific language governing permissions and
 *  limitations under the License.
 ********************************************************************************/
-
-// A simple command line tool that outputs json messages representing transactions
-// Usage: samples [0-3] [binary|text]
-// Note: Use build_samples.sh script to update correctly update dependencies
 
 package ledger_goclient
 
