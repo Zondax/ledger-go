@@ -4,6 +4,7 @@ import (
 	"testing"
 	"github.com/stretchr/testify/assert"
 	"unsafe"
+	"bytes"
 )
 
 func Test_Packetizer_EmptyCommand(t *testing.T) {
@@ -150,4 +151,57 @@ func Test_ApduWrapper_CheckHeaders(t *testing.T) {
 	assert.Equal(t, h1.channel, codec.Uint16(result[offsetOfSecondPacket:]), "Channel not properly serialized")
 	assert.Equal(t, h1.tag, result[offsetOfSecondPacket+2], "Tag not properly serialized")
 	assert.Equal(t, 1, int(codec.Uint16(result[offsetOfSecondPacket+3:])), "SequenceIdx not properly serialized")
+}
+
+func Test_ApduWrapper_CheckData(t *testing.T) {
+
+	var packetSize int = 64
+	type firstHeader struct {
+		channel     uint16
+		sequenceIdx uint16
+		commandLen  uint16
+		tag         uint8
+	}
+	type secondHeader struct {
+		channel     uint16
+		sequenceIdx uint16
+		tag         uint8
+	}
+
+	h1 := firstHeader{channel: 0x0101, tag: 0x05, sequenceIdx:0, commandLen: 200}
+
+	var command= make([]byte, h1.commandLen)
+
+	for i := range command {
+		command[i] = byte(i % 256)
+	}
+
+	result, _ := WrapCommandAPDU(
+		h1.channel,
+		command,
+		packetSize,
+		false)
+
+	// Check data in the first packet
+	assert.True(t, bytes.Compare(command[0:64-7], result[7:64]) == 0)
+
+	result = result[64:]
+	command = command[64-7:]
+	// Check data in the second packet
+	assert.True(t, bytes.Compare(command[0:64-5], result[5:64]) == 0)
+
+	result = result[64:]
+	command = command[64-5:]
+	// Check data in the third packet
+	assert.True(t, bytes.Compare(command[0:64-5], result[5:64]) == 0)
+
+	result = result[64:]
+	command = command[64-5:]
+
+	// Check data in the last packet
+	assert.True(t, bytes.Compare(command[0:len(command)], result[5:5+len(command)]) == 0)
+
+	// The remaining bytes in the result should be zeros
+	result = result[5+len(command):]
+	assert.True(t, bytes.Compare(result, make([]byte, len(result))) == 0)
 }
