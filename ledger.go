@@ -28,7 +28,7 @@ import (
 	"os"
 	"encoding/binary"
 	"encoding/hex"
-	"github.com/zondax/ledger/samples"
+	"ledger-goclient/samples"
 )
 
 var codec = binary.BigEndian
@@ -244,6 +244,11 @@ func main() {
 
 		input := ledger.device.ReadCh()
 		response, err := UnwrapResponseAPDU(Channel, input, PacketSize, false)
+
+		if len(response) < 3{
+			fmt.Printf("Response length %d", len(response))
+			os.Exit(-1)
+		}
 
 		swOffset := len(response) - 2
 		sw := codec.Uint16(response[swOffset:])

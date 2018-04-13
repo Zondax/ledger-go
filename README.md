@@ -1,4 +1,4 @@
-# zondaX-ledger
+# ledger-goclient
 
 This project is work in progress. Some aspects are subject to change.
 
