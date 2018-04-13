@@ -22,4 +22,4 @@ install:
   - dep ensure -v
 
 build_script:
-  - go build ledger.go
+  - go build ledger.go apduWrapper.go
