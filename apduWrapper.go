@@ -43,28 +43,27 @@ func Packetize(
 	if !ble {
 		codec.PutUint16(buffer, channel)
 		headerSize += 2
-		buffer = buffer[2:]
 	}
 
 	// Insert tag (1 byte)
-	buffer[0] = 0x05
+	buffer[headerSize] = 0x05
 	headerSize += 1
 
 	var commandLength uint16
 	commandLength = uint16(len(command))
 
 	// Insert sequenceIdx (2 bytes)
-	codec.PutUint16(buffer[1:], sequenceIdx)
+	codec.PutUint16(buffer[headerSize:], sequenceIdx)
 	headerSize += 2
 
 	// Only insert total size of the command in the first package
 	if sequenceIdx == 0 {
 		// Insert sequenceIdx (2 bytes)
-		codec.PutUint16(buffer[3:], commandLength)
+		codec.PutUint16(buffer[headerSize:], commandLength)
 		headerSize += 2
 	}
 
-	buffer = buffer[5:]
+	buffer = buffer[headerSize:]
 	offset = copy(buffer, command)
 	return result, offset, nil
 }
