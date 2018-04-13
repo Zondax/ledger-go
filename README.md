@@ -1,5 +1,7 @@
 # ledger-goclient
 
+[![CircleCI](https://circleci.com/gh/ZondaX/ledger-goclient.svg?style=svg)](https://circleci.com/gh/ZondaX/ledger-goclient)
+
 This project is work in progress. Some aspects are subject to change.
 
 # Get source

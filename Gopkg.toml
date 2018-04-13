@@ -24,11 +24,6 @@
 #   go-tests = true
 #   unused-packages = true
 
-
-[[constraint]]
-  branch = "master"
-  name = "github.com/brejski/hid"
-
 [[constraint]]
   name = "github.com/cosmos/cosmos-sdk"
   version = "0.14.1"
