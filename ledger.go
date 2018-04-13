@@ -15,10 +15,6 @@
 *  limitations under the License.
 ********************************************************************************/
 
-// A simple command line tool that outputs json messages representing transactions
-// Usage: samples [0-3] [binary|text]
-// Note: Use build_samples.sh script to update correctly update dependencies
-
 package main
 
 import (
@@ -28,7 +24,6 @@ import (
 	"os"
 	"encoding/binary"
 	"encoding/hex"
-	"ledger-goclient/samples"
 )
 
 var codec = binary.BigEndian
@@ -209,8 +204,6 @@ func UnwrapResponseAPDU(channel uint16, dev <-chan []byte, packetSize int, ble b
 
 
 func main() {
-    messages := samples.GetMessages()
-
     ledger, err := FindLedger()
     if err != nil {
         fmt.Printf("Could not find ledger.")
@@ -222,7 +215,7 @@ func main() {
 		header[1] = 0x01;
 		header[2] = 0x01;
 		header[3] = 0x01;
-		fullMessage := append(header, messages[0].GetSignBytes()...)
+		fullMessage := header
 
 		fmt.Println(fullMessage)
 		adpu := WrapCommandAPDU(Channel, fullMessage, PacketSize, false)
@@ -258,4 +251,3 @@ func main() {
 		fmt.Printf("Signature:" + hex.EncodeToString(response[:swOffset]))
 	}
 }
-
