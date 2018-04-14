@@ -138,12 +138,12 @@ func WrapCommandAPDU(
 func UnwrapResponseAPDU(channel uint16, dev <-chan []byte, packetSize int, ble bool) ([]byte, error) {
 	var sequenceIdx uint16
 
-	var buffer = <-dev
+	buffer := <-dev
 
 	var totalResult []byte
 	var totalSize uint16
 
-	for len(buffer) > 0 {
+	for int(totalSize) != len(totalResult) && len(totalResult) != 0 {
 		result, responseSize, err := DeserializePacket(channel, buffer[:packetSize], sequenceIdx, ble)
 		if err != nil {
 			return nil, err

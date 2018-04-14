@@ -5,6 +5,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"unsafe"
 	"bytes"
+	//"os"
+	"time"
 )
 
 func Test_SerializePacket_EmptyCommand(t *testing.T) {
@@ -204,4 +206,63 @@ func Test_WrapCommandAPDU_CheckData(t *testing.T) {
 	// The remaining bytes in the result should be zeros
 	result = result[5+len(command):]
 	assert.True(t, bytes.Compare(result, make([]byte, len(result))) == 0)
+}
+
+func Test_DeserializePacket_FirstPacket(t *testing.T) {
+
+	var sampleCommand = []byte{'H', 'e', 'l', 'l', 'o', 0}
+
+	var packetSize int = 64
+	var firstPacketHeaderSize int = 7
+	packet, _, _ := SerializePacket(0x0101, sampleCommand, packetSize, 0, false)
+
+	output, totalSize, err := DeserializePacket(0x0101, packet, 0, false)
+
+	assert.Nil(t,err, "Simple deserialize should not have errors")
+	assert.Equal(t, len(sampleCommand), int(totalSize), "TotalSize is incorrect")
+	assert.Equal(t, packetSize - firstPacketHeaderSize, len(output), "Size of the deserialized packet is wrong")
+	//assert.True(t, bytes.Compare(output[:len(sampleCommand)], sampleCommand) == 0, "Deserialized message does not match the original")
+}
+
+func Test_DeserializePacket_SecondMessage(t *testing.T) {
+
+	var sampleCommand = []byte{'H', 'e', 'l', 'l', 'o', 0}
+
+	var packetSize int = 64
+	var firstPacketHeaderSize int = 5 // second packet does not have responseLegth (uint16) in the header
+	packet, _, _ := SerializePacket(0x0101, sampleCommand, packetSize, 1, false)
+
+	output, totalSize, err := DeserializePacket(0x0101, packet, 1, false)
+
+	assert.Nil(t,err, "Simple deserialize should not have errors")
+	assert.Equal(t, 0, int(totalSize), "TotalSize should not be returned from deserialization of non-first packet")
+	assert.Equal(t, packetSize - firstPacketHeaderSize, len(output), "Size of the deserialized packet is wrong")
+	//assert.True(t, bytes.Compare(output[:len(sampleCommand)], sampleCommand) == 0, "Deserialized message does not match the original")
+}
+
+func WriteBuffer(pipe chan<- []byte, buffer []byte) {
+	time.Sleep(1 * time.Second)
+	pipe <- buffer
+}
+
+func Test_UnwrapApdu_SmokeTest(t *testing.T) {
+
+	var packetSize int = 64
+	var input= make([]byte, 200)
+	var channel uint16 = 0x8002
+
+	for i := range input {
+		input[i] = byte(i % 256)
+	}
+	serialized, _ := WrapCommandAPDU(
+		channel,
+		input,
+		packetSize,
+		false)
+
+	var pipe = make(chan []byte)
+	go WriteBuffer(pipe, serialized)
+
+	output, _ := UnwrapResponseAPDU(channel, pipe, packetSize, false)
+	assert.Equal(t, len(input), len(output), "Input message does not match message which was serialized and then deserialized")
 }
