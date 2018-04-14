@@ -7,14 +7,14 @@ import (
 	"bytes"
 )
 
-func Test_Packetizer_EmptyCommand(t *testing.T) {
+func Test_SerializePacket_EmptyCommand(t *testing.T) {
 	var command= make([]byte, 1)
 
-	_, _, err := Packetize(0x0101, command, 64, 0, false)
+	_, _, err := SerializePacket(0x0101, command, 64, 0, false)
 	assert.Nil(t, err, "Commands smaller than 3 bytes should return error")
 }
 
-func Test_Packetizer_PacketSize(t *testing.T) {
+func Test_SerializePacket_PacketSize(t *testing.T) {
 
 	var packetSize int = 64
 	type header struct {
@@ -28,7 +28,7 @@ func Test_Packetizer_PacketSize(t *testing.T) {
 
 	var command= make([]byte, h.commandLen)
 
-	result, _, _ := Packetize(
+	result, _, _ := SerializePacket(
 		h.channel,
 		command,
 		packetSize,
@@ -38,7 +38,7 @@ func Test_Packetizer_PacketSize(t *testing.T) {
 	assert.Equal(t, len(result), packetSize, "Packet size is wrong")
 }
 
-func Test_Packetizer_Header(t *testing.T) {
+func Test_SerializePacket_Header(t *testing.T) {
 
 	var packetSize int = 64
 	type header struct {
@@ -52,7 +52,7 @@ func Test_Packetizer_Header(t *testing.T) {
 
 	var command= make([]byte, h.commandLen)
 
-	result, _, _ := Packetize(
+	result, _, _ := SerializePacket(
 		h.channel,
 		command,
 		packetSize,
@@ -65,7 +65,7 @@ func Test_Packetizer_Header(t *testing.T) {
 	assert.Equal(t, codec.Uint16(result[5:]), h.commandLen, "Command len not properly serialized")
 }
 
-func Test_Packetizer_Offset(t *testing.T) {
+func Test_SerializePacket_Offset(t *testing.T) {
 
 	var packetSize int = 64
 	type header struct {
@@ -79,7 +79,7 @@ func Test_Packetizer_Offset(t *testing.T) {
 
 	var command= make([]byte, h.commandLen)
 
-	_, offset, _ := Packetize(
+	_, offset, _ := SerializePacket(
 		h.channel,
 		command,
 		packetSize,
@@ -89,7 +89,7 @@ func Test_Packetizer_Offset(t *testing.T) {
 	assert.Equal(t, packetSize - int(unsafe.Sizeof(h))+1, offset, "Wrong offset returned. Offset must point to the next comamnd byte that needs to be packet-ized.")
 }
 
-func Test_ApduWrapper_NumberOfPackets(t *testing.T) {
+func Test_WrapCommandAPDU_NumberOfPackets(t *testing.T) {
 
 	var packetSize int = 64
 	type firstHeader struct {
@@ -117,7 +117,7 @@ func Test_ApduWrapper_NumberOfPackets(t *testing.T) {
 	assert.Equal(t, packetSize*2, len(result), "Result buffer size is not correct")
 }
 
-func Test_ApduWrapper_CheckHeaders(t *testing.T) {
+func Test_WrapCommandAPDU_CheckHeaders(t *testing.T) {
 
 	var packetSize int = 64
 	type firstHeader struct {
@@ -153,7 +153,7 @@ func Test_ApduWrapper_CheckHeaders(t *testing.T) {
 	assert.Equal(t, 1, int(codec.Uint16(result[offsetOfSecondPacket+3:])), "SequenceIdx not properly serialized")
 }
 
-func Test_ApduWrapper_CheckData(t *testing.T) {
+func Test_WrapCommandAPDU_CheckData(t *testing.T) {
 
 	var packetSize int = 64
 	type firstHeader struct {

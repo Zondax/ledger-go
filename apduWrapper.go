@@ -28,7 +28,7 @@ import (
 
 var codec = binary.BigEndian
 
-func Packetize(
+func SerializePacket(
 	channel uint16,
 	command []byte,
 	packetSize int,
@@ -39,7 +39,7 @@ func Packetize(
 		return nil, 0, errors.New("Packet size must be at least 3")
 	}
 
-	var headerSize uint16
+	var headerOffset uint8
 
 	result = make([]byte, packetSize)
 	var buffer = result
@@ -47,30 +47,69 @@ func Packetize(
 	// Insert channel (2 bytes)
 	if !ble {
 		codec.PutUint16(buffer, channel)
-		headerSize += 2
+		headerOffset += 2
 	}
 
 	// Insert tag (1 byte)
-	buffer[headerSize] = 0x05
-	headerSize += 1
+	buffer[headerOffset] = 0x05
+	headerOffset += 1
 
 	var commandLength uint16
 	commandLength = uint16(len(command))
 
 	// Insert sequenceIdx (2 bytes)
-	codec.PutUint16(buffer[headerSize:], sequenceIdx)
-	headerSize += 2
+	codec.PutUint16(buffer[headerOffset:], sequenceIdx)
+	headerOffset += 2
 
 	// Only insert total size of the command in the first package
 	if sequenceIdx == 0 {
 		// Insert sequenceIdx (2 bytes)
-		codec.PutUint16(buffer[headerSize:], commandLength)
-		headerSize += 2
+		codec.PutUint16(buffer[headerOffset:], commandLength)
+		headerOffset += 2
 	}
 
-	buffer = buffer[headerSize:]
+	buffer = buffer[headerOffset:]
 	offset = copy(buffer, command)
 	return result, offset, nil
+}
+
+func DeserializePacket(
+	channel uint16,
+	buffer []byte,
+	sequenceIdx uint16,
+	ble bool)	(result []byte, totalResponseLength uint16, err error) {
+
+	if (sequenceIdx == 0 && len(buffer) < 7) || (sequenceIdx > 0 && len(buffer) < 5) {
+		return nil, 0, errors.New("Cannot deserialize the packet. Header information is missing.")
+	}
+
+	var headerOffset uint8
+
+	if !ble {
+		if codec.Uint16(buffer) != channel {
+			return nil, 0, errors.New("Invalid channel")
+		}
+		headerOffset += 2
+	}
+	if buffer[headerOffset] != 0x05 {
+		return nil, 0, errors.New("Invalid tag")
+	}
+	headerOffset++
+
+	if codec.Uint16(buffer[headerOffset:]) != sequenceIdx {
+		return nil, 0, errors.New("Wrong sequenceIdx")
+	}
+	headerOffset += 2
+
+	if sequenceIdx == 0 {
+		totalResponseLength = codec.Uint16(buffer[headerOffset:])
+		headerOffset += 2
+	}
+
+	result = make([]byte, len(buffer) - int(headerOffset))
+	copy(buffer[headerOffset:], result)
+
+	return result, totalResponseLength, nil
 }
 
 // WrapCommandAPDU turns the command into a sequence of 64 byte packets
@@ -84,7 +123,7 @@ func WrapCommandAPDU(
 	var totalResult []byte
 	var sequenceIdx uint16
 	for len(command) > 0 {
-		result, offset, err = Packetize(channel, command, packetSize, sequenceIdx, ble)
+		result, offset, err = SerializePacket(channel, command, packetSize, sequenceIdx, ble)
 		if err != nil {
 			return nil, err
 		}
@@ -97,67 +136,29 @@ func WrapCommandAPDU(
 
 // UnwrapResponseAPDU parses a response of 64 byte packets into the real data
 func UnwrapResponseAPDU(channel uint16, dev <-chan []byte, packetSize int, ble bool) ([]byte, error) {
-	var err error
 	var sequenceIdx uint16
-	var extraHeaderSize int
-	if !ble {
-		extraHeaderSize = 2
-	}
-	buf := <-dev
-	if len(buf) < 5+extraHeaderSize+5 {
-		return nil, errTooShort
-	}
 
-	buf, err = validatePrefix(buf, channel, sequenceIdx, ble)
-	if err != nil {
-		return nil, err
-	}
+	var buffer = <-dev
 
-	responseLength := int(codec.Uint16(buf))
-	buf = buf[2:]
-	result := make([]byte, responseLength)
-	out := result
+	var totalResult []byte
+	var totalSize uint16
 
-	blockSize := packetSize - 5 - extraHeaderSize
-	if blockSize > len(buf) {
-		blockSize = len(buf)
-	}
-	copy(out, buf[:blockSize])
-
-	// if there is anything left to read...
-	for len(out) > blockSize {
-		out = out[blockSize:]
-		buf = <-dev
-
-		sequenceIdx++
-		buf, err = validatePrefix(buf, channel, sequenceIdx, ble)
+	for len(buffer) > 0 {
+		result, responseSize, err := DeserializePacket(channel, buffer[:packetSize], sequenceIdx, ble)
 		if err != nil {
 			return nil, err
 		}
-
-		blockSize = packetSize - 3 - extraHeaderSize
-		if blockSize > len(buf) {
-			blockSize = len(buf)
+		if sequenceIdx == 0 {
+			totalSize = responseSize
 		}
-		copy(out, buf[:blockSize])
-	}
-	return result, nil
-}
 
-
-func validatePrefix(buf []byte, channel, sequenceIdx uint16, ble bool) ([]byte, error) {
-	if !ble {
-		if codec.Uint16(buf) != channel {
-			return nil, errInvalidChannel
-		}
-		buf = buf[2:]
+		buffer = buffer[packetSize:]
+		totalResult = append(totalResult, result...)
+		sequenceIdx++
 	}
 
-	if buf[0] != 0x05 {
-		return nil, errInvalidTag
+	if int(totalSize) != len(totalResult) {
+		return nil, errors.New("Error while unwrapping reposnse APDU, deserialized response has wrong size")
 	}
-	if codec.Uint16(buf[1:]) != sequenceIdx {
-		return nil, errInvalidSequence
-	}
-	return buf[3:], nil
+	return totalResult, nil
 }
