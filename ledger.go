@@ -20,21 +20,17 @@ import (
     "fmt"
     "errors"
     "github.com/brejski/hid"
-	"os"
-	"encoding/hex"
+	"math"
 )
 
-var (
-	errTooShort        = errors.New("too short")
-	errInvalidChannel  = errors.New("invalid channel")
-	errInvalidSequence = errors.New("invalid sequence")
-	errInvalidTag      = errors.New("invalid tag")
-)
 const (
-    VendorLedger = 0x2c97
-    ProductNano  = 1
-    Channel      = 0x8001
-    PacketSize   = 64
+    VendorLedger 		= 0x2c97
+    ProductNano  		= 1
+    Channel      		= 0x8001 // TODO: Check. This originally was 0x0101
+    PacketSize   		= 64
+	CLA					= 0x80
+	SignInstruction		= 0x01
+	MessageChunkSize	= 250
 )
 
 type Ledger struct {
@@ -48,12 +44,11 @@ func NewLedger(dev Device) *Ledger {
 }
 
 func FindLedger() (*Ledger, error) {
-    devs, err := hid.Devices()
+    devices, err := hid.Devices()
     if err != nil {
         return nil, err
     }
-    for _, d := range devs {
-        // TODO: ProductId filter
+    for _, d := range devices {
         if d.VendorID == VendorLedger {
             ledger, err := d.Open()
             if err != nil {
@@ -84,51 +79,63 @@ type Device interface {
     ReadError() error
 }
 
-func main() {
-    ledger, err := FindLedger()
-    if err != nil {
-        fmt.Printf("Could not find ledger.")
-        os.Exit(-1)
-    }
-    if ledger != nil {
-		header := make([]byte, 4)
-		header[0] = 0x80;
-		header[1] = 0x01;
-		header[2] = 0x01;
-		header[3] = 0x01;
-		fullMessage := header
+func (ledger *Ledger) Exchange(command []byte) ([]byte, error) {
+	serializedCommand, err := WrapCommandAPDU(Channel, command, PacketSize, false)
 
-		fmt.Println(fullMessage)
-		adpu, _ := WrapCommandAPDU(Channel, fullMessage, PacketSize, false)
-
-		// write all the packets
-		err := ledger.device.Write(adpu[:PacketSize])
-		if err != nil {
-			fmt.Printf("Could not write to ledger.")
-			os.Exit(-1)
-		}
-		for len(adpu) > PacketSize {
-			adpu = adpu[PacketSize:]
-			err = ledger.device.Write(adpu[:PacketSize])
-			if err != nil {
-				fmt.Printf("Could not write to ledger.")
-				os.Exit(-1)
-			}
-		}
-
-		input := ledger.device.ReadCh()
-		response, err := UnwrapResponseAPDU(Channel, input, PacketSize, false)
-
-		if len(response) < 3{
-			fmt.Printf("Response length %d", len(response))
-			os.Exit(-1)
-		}
-
-		swOffset := len(response) - 2
-		sw := codec.Uint16(response[swOffset:])
-		if sw != 0x9000 {
-			fmt.Errorf("Invalid status %04x", sw)
-		}
-		fmt.Printf("Signature:" + hex.EncodeToString(response[:swOffset]))
+	if err != nil {
+		return nil, err
 	}
+
+	// Write all the packets
+	err = ledger.device.Write(serializedCommand[:PacketSize])
+	if err != nil {
+		return nil, err
+	}
+	for len(serializedCommand) > PacketSize {
+		serializedCommand = serializedCommand[PacketSize:]
+		err = ledger.device.Write(serializedCommand[:PacketSize])
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	input := ledger.device.ReadCh()
+	response, err := UnwrapResponseAPDU(Channel, input, PacketSize, false)
+
+	swOffset := len(response) - 2
+	sw := codec.Uint16(response[swOffset:])
+	if sw != 0x9000 {
+		return nil, fmt.Errorf("invalid status %04x", sw)
+	}
+	return response[:swOffset], nil
+}
+
+func (ledger *Ledger) Sign(transaction []byte) ([]byte, error) {
+
+	var packetIndex byte = 1
+	var packetCount byte = byte(math.Ceil(float64(len(transaction)) / float64(MessageChunkSize)))
+
+	var finalResponse []byte
+	for packetIndex <= packetCount {
+		header := make([]byte, 4)
+		header[0] = CLA;
+		header[1] = SignInstruction;
+		header[2] = packetIndex
+		header[3] = packetCount
+
+		chunk := MessageChunkSize
+		if len(transaction) < MessageChunkSize {
+			chunk = len(transaction)
+		}
+		message := append(header, transaction[:chunk]...)
+		response, err := ledger.Exchange(message)
+
+		if err != nil {
+			return nil, err
+		}
+		finalResponse = response
+		packetIndex++
+		transaction = transaction[chunk:]
+	}
+	return finalResponse, nil
 }
