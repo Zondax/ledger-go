@@ -5,8 +5,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"unsafe"
 	"bytes"
-	//"os"
 	"time"
+	"math"
 )
 
 func Test_SerializePacket_EmptyCommand(t *testing.T) {
@@ -221,7 +221,7 @@ func Test_DeserializePacket_FirstPacket(t *testing.T) {
 	assert.Nil(t,err, "Simple deserialize should not have errors")
 	assert.Equal(t, len(sampleCommand), int(totalSize), "TotalSize is incorrect")
 	assert.Equal(t, packetSize - firstPacketHeaderSize, len(output), "Size of the deserialized packet is wrong")
-	//assert.True(t, bytes.Compare(output[:len(sampleCommand)], sampleCommand) == 0, "Deserialized message does not match the original")
+	assert.True(t, bytes.Compare(output[:len(sampleCommand)], sampleCommand) == 0, "Deserialized message does not match the original")
 }
 
 func Test_DeserializePacket_SecondMessage(t *testing.T) {
@@ -237,7 +237,7 @@ func Test_DeserializePacket_SecondMessage(t *testing.T) {
 	assert.Nil(t,err, "Simple deserialize should not have errors")
 	assert.Equal(t, 0, int(totalSize), "TotalSize should not be returned from deserialization of non-first packet")
 	assert.Equal(t, packetSize - firstPacketHeaderSize, len(output), "Size of the deserialized packet is wrong")
-	//assert.True(t, bytes.Compare(output[:len(sampleCommand)], sampleCommand) == 0, "Deserialized message does not match the original")
+	assert.True(t, bytes.Compare(output[:len(sampleCommand)], sampleCommand) == 0, "Deserialized message does not match the original")
 }
 
 func WriteBuffer(pipe chan<- []byte, buffer []byte) {
@@ -247,8 +247,9 @@ func WriteBuffer(pipe chan<- []byte, buffer []byte) {
 
 func Test_UnwrapApdu_SmokeTest(t *testing.T) {
 
+	inputSize := 200
 	var packetSize int = 64
-	var input= make([]byte, 200)
+	var input= make([]byte, inputSize)
 	var channel uint16 = 0x8002
 
 	for i := range input {
@@ -260,9 +261,16 @@ func Test_UnwrapApdu_SmokeTest(t *testing.T) {
 		packetSize,
 		false)
 
-	var pipe = make(chan []byte)
-	go WriteBuffer(pipe, serialized)
+	// Allocate enough buffers to keep all the packets
+	pipe := make(chan []byte, int(math.Ceil(float64(inputSize) / float64(packetSize))))
+
+	// Send all the packets to the pipe
+	for len(serialized) > 0 {
+		pipe <- serialized[:packetSize]
+		serialized = serialized[packetSize:]
+	}
 
 	output, _ := UnwrapResponseAPDU(channel, pipe, packetSize, false)
-	assert.Equal(t, len(input), len(output), "Input message does not match message which was serialized and then deserialized")
+	assert.Equal(t, len(input), len(output), "Input and output messages have different size")
+	assert.True(t, bytes.Compare(input, output) == 0, "Input message does not match message which was serialized and then deserialized")
 }

@@ -107,7 +107,7 @@ func DeserializePacket(
 	}
 
 	result = make([]byte, len(buffer) - int(headerOffset))
-	copy(buffer[headerOffset:], result)
+	copy(result, buffer[headerOffset:])
 
 	return result, totalResponseLength, nil
 }
@@ -135,16 +135,17 @@ func WrapCommandAPDU(
 }
 
 // UnwrapResponseAPDU parses a response of 64 byte packets into the real data
-func UnwrapResponseAPDU(channel uint16, dev <-chan []byte, packetSize int, ble bool) ([]byte, error) {
+func UnwrapResponseAPDU(channel uint16, pipe <- chan []byte, packetSize int, ble bool) ([]byte, error) {
 	var sequenceIdx uint16
-
-	buffer := <-dev
 
 	var totalResult []byte
 	var totalSize uint16
+	var finished bool = false
+	for !finished {
 
-	for int(totalSize) != len(totalResult) && len(totalResult) != 0 {
-		result, responseSize, err := DeserializePacket(channel, buffer[:packetSize], sequenceIdx, ble)
+		// Read next packet from the channel
+		buffer := <- pipe
+		result, responseSize, err := DeserializePacket(channel, buffer, sequenceIdx, ble)
 		if err != nil {
 			return nil, err
 		}
@@ -155,10 +156,13 @@ func UnwrapResponseAPDU(channel uint16, dev <-chan []byte, packetSize int, ble b
 		buffer = buffer[packetSize:]
 		totalResult = append(totalResult, result...)
 		sequenceIdx++
+
+		if len(totalResult) >= int(totalSize) {
+			finished = true
+		}
 	}
 
-	if int(totalSize) != len(totalResult) {
-		return nil, errors.New("Error while unwrapping reposnse APDU, deserialized response has wrong size")
-	}
+	// Remove trailing zeros
+	totalResult = totalResult[:totalSize]
 	return totalResult, nil
 }
