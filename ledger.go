@@ -17,66 +17,66 @@
 package ledger_goclient
 
 import (
-    "fmt"
-    "errors"
-    "github.com/brejski/hid"
+	"fmt"
+	"errors"
+	"github.com/brejski/hid"
 	"math"
 )
 
 const (
-    VendorLedger 		= 0x2c97
-    ProductNano  		= 1
-    Channel      		= 0x8001 // TODO: Check. This originally was 0x0101
-    PacketSize   		= 64
-	CLA					= 0x80
-	SignInstruction		= 0x01
-	MessageChunkSize	= 250
+	VendorLedger     = 0x2c97
+	ProductNano      = 1
+	Channel          = 0x8001 // TODO: Check. This originally was 0x0101
+	PacketSize       = 64
+	CLA              = 0x80
+	SignInstruction  = 0x01
+	MessageChunkSize = 250
 )
 
 type Ledger struct {
-    device Device
+	device Device
 }
 
 func NewLedger(dev Device) *Ledger {
-    return &Ledger{
-        device: dev,
-    }
+	return &Ledger{
+		device: dev,
+	}
 }
 
 func FindLedger() (*Ledger, error) {
-    devices, err := hid.Devices()
-    if err != nil {
-        return nil, err
-    }
-    for _, d := range devices {
-        if d.VendorID == VendorLedger {
-            ledger, err := d.Open()
-            if err != nil {
-                return nil, err
-            }
-            return NewLedger(ledger), nil
-        }
-    }
-    return nil, errors.New("no ledger connected")
+	devices, err := hid.Devices()
+	if err != nil {
+		return nil, err
+	}
+	for _, d := range devices {
+		if d.VendorID == VendorLedger {
+			ledger, err := d.Open()
+			if err != nil {
+				return nil, err
+			}
+			return NewLedger(ledger), nil
+		}
+	}
+	return nil, errors.New("no ledger connected")
 }
 
 // A Device provides access to a HID device.
 type Device interface {
-    // Close closes the device and associated resources.
-    Close()
+	// Close closes the device and associated resources.
+	Close()
 
-    // Write writes an output report to device. The first byte must be the
-    // report number to write, zero if the device does not use numbered reports.
-    Write([]byte) error
+	// Write writes an output report to device. The first byte must be the
+	// report number to write, zero if the device does not use numbered reports.
+	Write([]byte) error
 
-    // ReadCh returns a channel that will be sent input reports from the device.
-    // If the device uses numbered reports, the first byte will be the report
-    // number.
-    ReadCh() <-chan []byte
+	// ReadCh returns a channel that will be sent input reports from the device.
+	// If the device uses numbered reports, the first byte will be the report
+	// number.
+	ReadCh() <-chan []byte
 
-    // ReadError returns the read error, if any after the channel returned from
-    // ReadCh has been closed.
-    ReadError() error
+	// ReadError returns the read error, if any after the channel returned from
+	// ReadCh has been closed.
+	ReadError() error
 }
 
 func (ledger *Ledger) Exchange(command []byte) ([]byte, error) {
@@ -102,11 +102,17 @@ func (ledger *Ledger) Exchange(command []byte) ([]byte, error) {
 	input := ledger.device.ReadCh()
 	response, err := UnwrapResponseAPDU(Channel, input, PacketSize, false)
 
+	if len(response) < 2 {
+		return nil, fmt.Errorf("lost connection")
+	}
+
 	swOffset := len(response) - 2
 	sw := codec.Uint16(response[swOffset:])
 	if sw != 0x9000 {
+		// TODO: parse APDU error codes
 		return nil, fmt.Errorf("invalid status %04x", sw)
 	}
+	
 	return response[:swOffset], nil
 }
 
