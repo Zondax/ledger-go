@@ -35,15 +35,14 @@ const (
 )
 
 type VersionInfo struct {
-	appId uint8
-	major uint8
-	minor uint8
-	patch uint8
+	AppId uint8
+	Major uint8
+	Minor uint8
+	Patch uint8
 }
 
 type Ledger struct {
 	device  Device
-	version VersionInfo
 }
 
 func NewLedger(dev Device) *Ledger {
@@ -126,7 +125,7 @@ func (ledger *Ledger) Exchange(command []byte) ([]byte, error) {
 	return response[:swOffset], nil
 }
 
-func (ledger *Ledger) GetVersion(transaction []byte) (*VersionInfo, error) {
+func (ledger *Ledger) GetVersion() (*VersionInfo, error) {
 	message := make([]byte, 2)
 	message[0] = CLA
 	message[1] = GetVersionINS
@@ -139,12 +138,12 @@ func (ledger *Ledger) GetVersion(transaction []byte) (*VersionInfo, error) {
 	if len(response) < 4 {
 		return nil, fmt.Errorf("invalid response")
 	}
-	
+
 	return &VersionInfo{
-		appId: response[0],
-		major: response[1],
-		minor: response[2],
-		patch: response[3],
+		AppId: response[0],
+		Major: response[1],
+		Minor: response[2],
+		Patch: response[3],
 	}, nil
 }
 
