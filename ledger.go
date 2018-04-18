@@ -29,12 +29,21 @@ const (
 	Channel          = 0x8001 // TODO: Check. This originally was 0x0101
 	PacketSize       = 64
 	CLA              = 0x80
-	SignInstruction  = 0x01
+	GetVersionINS    = 0x00
+	SignINS          = 0x01
 	MessageChunkSize = 250
 )
 
+type VersionInfo struct {
+	appId uint8
+	major uint8
+	minor uint8
+	patch uint8
+}
+
 type Ledger struct {
-	device Device
+	device  Device
+	version VersionInfo
 }
 
 func NewLedger(dev Device) *Ledger {
@@ -50,11 +59,11 @@ func FindLedger() (*Ledger, error) {
 	}
 	for _, d := range devices {
 		if d.VendorID == VendorLedger {
-			ledger, err := d.Open()
+			device, err := d.Open()
 			if err != nil {
 				return nil, err
 			}
-			return NewLedger(ledger), nil
+			return NewLedger(device), nil
 		}
 	}
 	return nil, errors.New("no ledger connected")
@@ -108,12 +117,35 @@ func (ledger *Ledger) Exchange(command []byte) ([]byte, error) {
 
 	swOffset := len(response) - 2
 	sw := codec.Uint16(response[swOffset:])
+
 	if sw != 0x9000 {
 		// TODO: parse APDU error codes
 		return nil, fmt.Errorf("invalid status %04x", sw)
 	}
-	
+
 	return response[:swOffset], nil
+}
+
+func (ledger *Ledger) GetVersion(transaction []byte) (*VersionInfo, error) {
+	message := make([]byte, 2)
+	message[0] = CLA
+	message[1] = GetVersionINS
+	response, err := ledger.Exchange(message)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if len(response) < 4 {
+		return nil, fmt.Errorf("invalid response")
+	}
+	
+	return &VersionInfo{
+		appId: response[0],
+		major: response[1],
+		minor: response[2],
+		patch: response[3],
+	}, nil
 }
 
 func (ledger *Ledger) Sign(transaction []byte) ([]byte, error) {
@@ -125,7 +157,7 @@ func (ledger *Ledger) Sign(transaction []byte) ([]byte, error) {
 	for packetIndex <= packetCount {
 		header := make([]byte, 4)
 		header[0] = CLA;
-		header[1] = SignInstruction;
+		header[1] = SignINS;
 		header[2] = packetIndex
 		header[3] = packetCount
 
