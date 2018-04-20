@@ -283,7 +283,7 @@ func (ledger *Ledger) GetPublicKey() ([]byte, error) {
 		return nil, err
 	}
 
-	if len(response) < 67 {
+	if len(response) < 65 {
 		return nil, fmt.Errorf("invalid response")
 	}
 
