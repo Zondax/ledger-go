@@ -272,3 +272,20 @@ func (ledger *Ledger) GetPKDummy() ([]byte, error) {
 
 	return response, nil
 }
+
+func (ledger *Ledger) GetPublicKey() ([]byte, error) {
+	message := make([]byte, 2)
+	message[0] = CLA
+	message[1] = GetPKINS
+	response, err := ledger.Exchange(message)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if len(response) < 67 {
+		return nil, fmt.Errorf("invalid response")
+	}
+
+	return response, nil
+}
