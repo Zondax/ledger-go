@@ -29,8 +29,15 @@ const (
 	Channel          = 0x8001 // TODO: Check. This originally was 0x0101
 	PacketSize       = 64
 	CLA              = 0x80
+
 	GetVersionINS    = 0x00
 	SignINS          = 0x01
+	GetHashINS       = 0x02
+	GetPKINS         = 0x03
+
+	EchoINS          = 99
+	GetPKDummy       = 100
+
 	MessageChunkSize = 250
 )
 
@@ -43,11 +50,13 @@ type VersionInfo struct {
 
 type Ledger struct {
 	device  Device
+	Logging bool
 }
 
 func NewLedger(dev Device) *Ledger {
 	return &Ledger{
-		device: dev,
+		device:  dev,
+		Logging: false,
 	}
 }
 
@@ -88,6 +97,10 @@ type Device interface {
 }
 
 func (ledger *Ledger) Exchange(command []byte) ([]byte, error) {
+	if ledger.Logging {
+		fmt.Printf("[%3d]=> %x\n", len(command), command)
+	}
+
 	serializedCommand, err := WrapCommandAPDU(Channel, command, PacketSize, false)
 
 	if err != nil {
@@ -122,6 +135,10 @@ func (ledger *Ledger) Exchange(command []byte) ([]byte, error) {
 		return nil, fmt.Errorf("invalid status %04x", sw)
 	}
 
+	if ledger.Logging {
+		fmt.Printf("[%3d]<= %x\n", len(response[:swOffset]), response[:swOffset])
+	}
+
 	return response[:swOffset], nil
 }
 
@@ -153,10 +170,11 @@ func (ledger *Ledger) Sign(transaction []byte) ([]byte, error) {
 	var packetCount byte = byte(math.Ceil(float64(len(transaction)) / float64(MessageChunkSize)))
 
 	var finalResponse []byte
+
 	for packetIndex <= packetCount {
 		header := make([]byte, 4)
-		header[0] = CLA;
-		header[1] = SignINS;
+		header[0] = CLA
+		header[1] = SignINS
 		header[2] = packetIndex
 		header[3] = packetCount
 
@@ -175,4 +193,82 @@ func (ledger *Ledger) Sign(transaction []byte) ([]byte, error) {
 		transaction = transaction[chunk:]
 	}
 	return finalResponse, nil
+}
+
+func (ledger *Ledger) Hash(transaction []byte) ([]byte, error) {
+
+	var packetIndex byte = 1
+	var packetCount byte = byte(math.Ceil(float64(len(transaction)) / float64(MessageChunkSize)))
+
+	var finalResponse []byte
+	for packetIndex <= packetCount {
+		header := make([]byte, 4)
+		header[0] = CLA
+		header[1] = GetHashINS
+		header[2] = packetIndex
+		header[3] = packetCount
+
+		chunk := MessageChunkSize
+		if len(transaction) < MessageChunkSize {
+			chunk = len(transaction)
+		}
+		message := append(header, transaction[:chunk]...)
+		response, err := ledger.Exchange(message)
+
+		if err != nil {
+			return nil, err
+		}
+		finalResponse = response
+		packetIndex++
+		transaction = transaction[chunk:]
+	}
+	return finalResponse, nil
+}
+
+func (ledger *Ledger) Echo(transaction []byte) ([]byte, error) {
+
+	var packetIndex byte = 1
+	var packetCount byte = byte(math.Ceil(float64(len(transaction)) / float64(MessageChunkSize)))
+
+	var finalResponse []byte
+	for packetIndex <= packetCount {
+		header := make([]byte, 4)
+		header[0] = CLA
+		header[1] = EchoINS
+		header[2] = packetIndex
+		header[3] = packetCount
+
+		chunk := MessageChunkSize
+		if len(transaction) < MessageChunkSize {
+			chunk = len(transaction)
+		}
+		message := append(header, transaction[:chunk]...)
+
+		response, err := ledger.Exchange(message)
+		if err != nil {
+			return nil, err
+		}
+
+		finalResponse = response
+		packetIndex++
+		transaction = transaction[chunk:]
+	}
+	return finalResponse, nil
+}
+
+func (ledger *Ledger) GetPKDummy() ([]byte, error) {
+	message := make([]byte, 2)
+	message[0] = CLA
+	message[1] = GetPKDummy
+	response, err := ledger.Exchange(message)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if len(response) < 4 {
+		return nil, fmt.Errorf("invalid response")
+	}
+
+	return response, nil
 }
