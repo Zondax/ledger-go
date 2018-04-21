@@ -24,22 +24,22 @@ import (
 )
 
 const (
-	VendorLedger     = 0x2c97
-	ProductNano      = 1
-	Channel          = 0x8001 // TODO: Check. This originally was 0x0101
-	PacketSize       = 64
-	CLA              = 0x80
+	VendorLedger		= 0x2c97
+	ProductNano			= 1
+	Channel				= 0x0101
+	PacketSize     		= 64
+	CLA        			= 0x80
 
-	GetVersionINS    = 0x00
-	SignINS          = 0x01
-	GetHashINS       = 0x02
-	GetPKINS  		 = 0x03
-	SignQuickINS  	 = 0x04
+	GetVersionINS		= 0x00
+	SignINS				= 0x01
+	GetHashINS			= 0x02
+	GetPKINS			= 0x03
+	SignQuickINS  		= 0x04
 
-	EchoINS          = 99
-	GetPKDummy       = 100
+	EchoINS         	= 99
+	GetPKDummy      	= 100
 
-	MessageChunkSize = 250
+	MessageChunkSize	= 250
 )
 
 type VersionInfo struct {
@@ -323,7 +323,7 @@ func (ledger *Ledger) GetPublicKey() ([]byte, error) {
 		return nil, err
 	}
 
-	if len(response) < 6 {
+	if len(response) < 4 {
 		return nil, fmt.Errorf("invalid response")
 	}
 
