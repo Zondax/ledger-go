@@ -213,7 +213,7 @@ func (ledger *Ledger) SignTest(transaction []byte) ([]byte, error) {
 	for packetIndex <= packetCount {
 		header := make([]byte, 4)
 		header[0] = CLA
-		header[1] = TestSignINS
+		header[1] = GetTestSignINS
 		header[2] = packetIndex
 		header[3] = packetCount
 
@@ -273,7 +273,7 @@ func (ledger *Ledger) Echo(transaction []byte) ([]byte, error) {
 	for packetIndex <= packetCount {
 		header := make([]byte, 4)
 		header[0] = CLA
-		header[1] = TestEchoINS
+		header[1] = GetTestEchoINS
 		header[2] = packetIndex
 		header[3] = packetCount
 
