@@ -35,9 +35,9 @@ const (
 	GetHashINS			= 0x02
 	SignQuickINS  		= 0x04
 
-	TestEchoINS         = 99
-	TestGetPKINS      	= 100
-	TestSignINS			= 101
+	GetTestEchoINS      = 99
+	GetTestPublicKeyINS = 100
+	GetTestSignINS		= 101
 	MessageChunkSize	= 250
 )
 
@@ -295,10 +295,10 @@ func (ledger *Ledger) Echo(transaction []byte) ([]byte, error) {
 	return finalResponse, nil
 }
 
-func (ledger *Ledger) GetPKDummy() ([]byte, error) {
+func (ledger *Ledger) GetTestPublicKey() ([]byte, error) {
 	message := make([]byte, 2)
 	message[0] = CLA
-	message[1] = TestGetPKINS
+	message[1] = GetTestPublicKeyINS
 	response, err := ledger.Exchange(message)
 
 	if err != nil {
