@@ -33,12 +33,11 @@ const (
 	GetVersionINS		= 0x00
 	SignINS				= 0x01
 	GetHashINS			= 0x02
-	GetPKINS			= 0x03
 	SignQuickINS  		= 0x04
 
-	EchoINS         	= 99
-	GetPKDummy      	= 100
-
+	TestEchoINS         = 99
+	TestGetPKINS      	= 100
+	TestSignINS			= 101
 	MessageChunkSize	= 250
 )
 
@@ -204,7 +203,7 @@ func (ledger *Ledger) Sign(transaction []byte) ([]byte, error) {
 	return finalResponse, nil
 }
 
-func (ledger *Ledger) SignQuick(transaction []byte) ([]byte, error) {
+func (ledger *Ledger) SignTest(transaction []byte) ([]byte, error) {
 
 	var packetIndex byte = 1
 	var packetCount byte = byte(math.Ceil(float64(len(transaction)) / float64(MessageChunkSize)))
@@ -214,7 +213,7 @@ func (ledger *Ledger) SignQuick(transaction []byte) ([]byte, error) {
 	for packetIndex <= packetCount {
 		header := make([]byte, 4)
 		header[0] = CLA
-		header[1] = SignQuickINS
+		header[1] = TestSignINS
 		header[2] = packetIndex
 		header[3] = packetCount
 
@@ -274,7 +273,7 @@ func (ledger *Ledger) Echo(transaction []byte) ([]byte, error) {
 	for packetIndex <= packetCount {
 		header := make([]byte, 4)
 		header[0] = CLA
-		header[1] = EchoINS
+		header[1] = TestEchoINS
 		header[2] = packetIndex
 		header[3] = packetCount
 
@@ -299,24 +298,7 @@ func (ledger *Ledger) Echo(transaction []byte) ([]byte, error) {
 func (ledger *Ledger) GetPKDummy() ([]byte, error) {
 	message := make([]byte, 2)
 	message[0] = CLA
-	message[1] = GetPKDummy
-	response, err := ledger.Exchange(message)
-
-	if err != nil {
-		return nil, err
-	}
-
-	if len(response) < 4 {
-		return nil, fmt.Errorf("invalid response")
-	}
-
-	return response, nil
-}
-
-func (ledger *Ledger) GetPublicKey() ([]byte, error) {
-	message := make([]byte, 2)
-	message[0] = CLA
-	message[1] = GetPKINS
+	message[1] = TestGetPKINS
 	response, err := ledger.Exchange(message)
 
 	if err != nil {
