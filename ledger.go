@@ -25,19 +25,20 @@ import (
 
 const (
 	VendorLedger		= 0x2c97
+	UsagePageLedger		= 0xffa0
 	ProductNano			= 1
 	Channel				= 0x0101
 	PacketSize     		= 64
 	CLA        			= 0x80
 
-	GetVersionINS		= 0x00
-	SignINS				= 0x01
-	GetHashINS			= 0x02
-	SignQuickINS  		= 0x04
+	INSGetVersion = 0
+	INSPublicKey  = 1
+	INSSign       = 2
 
-	GetTestEchoINS      = 99
-	GetTestPublicKeyINS = 100
-	GetTestSignINS		= 101
+	INSHash          = 99
+	INSPublicKeyTest = 100
+	INSSignTest      = 101
+
 	MessageChunkSize	= 250
 )
 
@@ -60,13 +61,36 @@ func NewLedger(dev Device) *Ledger {
 	}
 }
 
+func ListDevices() {
+	devices, err := hid.Devices()
+	if err != nil {
+		fmt.Printf("Error: %s", err)
+	}
+
+	if len(devices)==0{
+		fmt.Printf("No devices")
+	}
+
+	for _, d := range devices {
+		fmt.Printf("============ %s\n", d.Path)
+		fmt.Printf("Manufacturer  : %s\n", d.Manufacturer)
+		fmt.Printf("Product       : %s\n", d.Product)
+		fmt.Printf("ProductID     : %x\n", d.ProductID)
+		fmt.Printf("VendorID      : %x\n", d.VendorID)
+		fmt.Printf("VersionNumber : %x\n", d.VersionNumber)
+		fmt.Printf("UsagePage     : %x\n", d.UsagePage)
+		fmt.Printf("Usage         : %x\n", d.Usage)
+		fmt.Printf("\n")
+	}
+}
+
 func FindLedger() (*Ledger, error) {
 	devices, err := hid.Devices()
 	if err != nil {
 		return nil, err
 	}
 	for _, d := range devices {
-		if d.VendorID == VendorLedger {
+		if d.VendorID == VendorLedger && d.UsagePage == UsagePageLedger {
 			device, err := d.Open()
 			if err != nil {
 				return nil, err
@@ -153,7 +177,7 @@ func (ledger *Ledger) Exchange(command []byte) ([]byte, error) {
 func (ledger *Ledger) GetVersion() (*VersionInfo, error) {
 	message := make([]byte, 2)
 	message[0] = CLA
-	message[1] = GetVersionINS
+	message[1] = INSGetVersion
 	response, err := ledger.Exchange(message)
 
 	if err != nil {
@@ -182,7 +206,54 @@ func (ledger *Ledger) Sign(transaction []byte) ([]byte, error) {
 	for packetIndex <= packetCount {
 		header := make([]byte, 4)
 		header[0] = CLA
-		header[1] = SignINS
+		header[1] = INSSign
+		header[2] = packetIndex
+		header[3] = packetCount
+
+		chunk := MessageChunkSize
+		if len(transaction) < MessageChunkSize {
+			chunk = len(transaction)
+		}
+		message := append(header, transaction[:chunk]...)
+		response, err := ledger.Exchange(message)
+
+		if err != nil {
+			return nil, err
+		}
+		finalResponse = response
+		packetIndex++
+		transaction = transaction[chunk:]
+	}
+	return finalResponse, nil
+}
+
+func (ledger *Ledger) GetPublicKey() ([]byte, error) {
+	message := make([]byte, 2)
+	message[0] = CLA
+	message[1] = INSPublicKey
+	response, err := ledger.Exchange(message)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if len(response) < 4 {
+		return nil, fmt.Errorf("invalid response")
+	}
+
+	return response, nil
+}
+
+func (ledger *Ledger) Hash(transaction []byte) ([]byte, error) {
+
+	var packetIndex byte = 1
+	var packetCount byte = byte(math.Ceil(float64(len(transaction)) / float64(MessageChunkSize)))
+
+	var finalResponse []byte
+	for packetIndex <= packetCount {
+		header := make([]byte, 4)
+		header[0] = CLA
+		header[1] = INSHash
 		header[2] = packetIndex
 		header[3] = packetCount
 
@@ -213,67 +284,7 @@ func (ledger *Ledger) SignTest(transaction []byte) ([]byte, error) {
 	for packetIndex <= packetCount {
 		header := make([]byte, 4)
 		header[0] = CLA
-		header[1] = GetTestSignINS
-		header[2] = packetIndex
-		header[3] = packetCount
-
-		chunk := MessageChunkSize
-		if len(transaction) < MessageChunkSize {
-			chunk = len(transaction)
-		}
-		message := append(header, transaction[:chunk]...)
-		response, err := ledger.Exchange(message)
-
-		if err != nil {
-			return nil, err
-		}
-		finalResponse = response
-		packetIndex++
-		transaction = transaction[chunk:]
-	}
-	return finalResponse, nil
-}
-
-func (ledger *Ledger) Hash(transaction []byte) ([]byte, error) {
-
-	var packetIndex byte = 1
-	var packetCount byte = byte(math.Ceil(float64(len(transaction)) / float64(MessageChunkSize)))
-
-	var finalResponse []byte
-	for packetIndex <= packetCount {
-		header := make([]byte, 4)
-		header[0] = CLA
-		header[1] = GetHashINS
-		header[2] = packetIndex
-		header[3] = packetCount
-
-		chunk := MessageChunkSize
-		if len(transaction) < MessageChunkSize {
-			chunk = len(transaction)
-		}
-		message := append(header, transaction[:chunk]...)
-		response, err := ledger.Exchange(message)
-
-		if err != nil {
-			return nil, err
-		}
-		finalResponse = response
-		packetIndex++
-		transaction = transaction[chunk:]
-	}
-	return finalResponse, nil
-}
-
-func (ledger *Ledger) Echo(transaction []byte) ([]byte, error) {
-
-	var packetIndex byte = 1
-	var packetCount byte = byte(math.Ceil(float64(len(transaction)) / float64(MessageChunkSize)))
-
-	var finalResponse []byte
-	for packetIndex <= packetCount {
-		header := make([]byte, 4)
-		header[0] = CLA
-		header[1] = GetTestEchoINS
+		header[1] = INSSignTest
 		header[2] = packetIndex
 		header[3] = packetCount
 
@@ -284,6 +295,7 @@ func (ledger *Ledger) Echo(transaction []byte) ([]byte, error) {
 		message := append(header, transaction[:chunk]...)
 
 		response, err := ledger.Exchange(message)
+
 		if err != nil {
 			return nil, err
 		}
@@ -298,7 +310,7 @@ func (ledger *Ledger) Echo(transaction []byte) ([]byte, error) {
 func (ledger *Ledger) GetTestPublicKey() ([]byte, error) {
 	message := make([]byte, 2)
 	message[0] = CLA
-	message[1] = GetTestPublicKeyINS
+	message[1] = INSPublicKeyTest
 	response, err := ledger.Exchange(message)
 
 	if err != nil {
