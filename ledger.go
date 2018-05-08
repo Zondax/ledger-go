@@ -17,6 +17,7 @@
 package ledger_goclient
 
 import (
+	"encoding/binary"
 	"fmt"
 	"errors"
 	"github.com/brejski/hid"
@@ -24,12 +25,12 @@ import (
 )
 
 const (
-	VendorLedger		= 0x2c97
-	UsagePageLedger		= 0xffa0
-	ProductNano			= 1
-	Channel				= 0x0101
-	PacketSize     		= 64
-	CLA        			= 0x80
+	VendorLedger    = 0x2c97
+	UsagePageLedger = 0xffa0
+	ProductNano     = 1
+	Channel         = 0x0101
+	PacketSize      = 64
+	CLA             = 0x55
 
 	INSGetVersion = 0
 	INSPublicKey  = 1
@@ -39,7 +40,7 @@ const (
 	INSPublicKeyTest = 100
 	INSSignTest      = 101
 
-	MessageChunkSize	= 250
+	MessageChunkSize = 250
 )
 
 type VersionInfo struct {
@@ -67,7 +68,7 @@ func ListDevices() {
 		fmt.Printf("Error: %s", err)
 	}
 
-	if len(devices)==0{
+	if len(devices) == 0 {
 		fmt.Printf("No devices")
 	}
 
@@ -156,13 +157,20 @@ func (ledger *Ledger) Exchange(command []byte) ([]byte, error) {
 
 	if sw != 0x9000 {
 		switch sw {
-		case 0x6400: return nil, errors.New("APDU_CODE_EXECUTION_ERROR")
-		case 0x6982: return nil, errors.New("APDU_CODE_EMPTY_BUFFER")
-		case 0x6983: return nil, errors.New("APDU_CODE_OUTPUT_BUFFER_TOO_SMALL")
-		case 0x6986: return nil, errors.New("APDU_CODE_COMMAND_NOT_ALLOWED")
-		case 0x6D00: return nil, errors.New("APDU_CODE_INS_NOT_SUPPORTED")
-		case 0x6E00: return nil, errors.New("APDU_CODE_CLA_NOT_SUPPORTED")
-		case 0x6F00: return nil, errors.New("APDU_CODE_UNKNOWN")
+		case 0x6400:
+			return nil, errors.New("APDU_CODE_EXECUTION_ERROR")
+		case 0x6982:
+			return nil, errors.New("APDU_CODE_EMPTY_BUFFER")
+		case 0x6983:
+			return nil, errors.New("APDU_CODE_OUTPUT_BUFFER_TOO_SMALL")
+		case 0x6986:
+			return nil, errors.New("APDU_CODE_COMMAND_NOT_ALLOWED")
+		case 0x6D00:
+			return nil, errors.New("APDU_CODE_INS_NOT_SUPPORTED")
+		case 0x6E00:
+			return nil, errors.New("APDU_CODE_CLA_NOT_SUPPORTED")
+		case 0x6F00:
+			return nil, errors.New("APDU_CODE_UNKNOWN")
 		}
 		return nil, fmt.Errorf("invalid status %04x", sw)
 	}
@@ -196,41 +204,68 @@ func (ledger *Ledger) GetVersion() (*VersionInfo, error) {
 	}, nil
 }
 
-func (ledger *Ledger) Sign(transaction []byte) ([]byte, error) {
+func getBip32bytes(bip32_path []uint32) ([]byte, error) {
+	message := make([]byte, 41)
+	if len(bip32_path) > 10 {
+		return nil, fmt.Errorf("maximum bip32 depth = 10")
+	}
+	message[0] = byte(len(bip32_path))
+	for index, element := range bip32_path {
+		pos := 1 + index*4
+		binary.LittleEndian.PutUint32(message[pos:], 0x80000000|element)
+	}
+	return message, nil
+}
+
+func (ledger *Ledger) Sign(bip32_path []uint32, transaction []byte) ([]byte, error) {
 
 	var packetIndex byte = 1
-	var packetCount byte = byte(math.Ceil(float64(len(transaction)) / float64(MessageChunkSize)))
+	var packetCount byte = 1 + byte(math.Ceil(float64(len(transaction))/float64(MessageChunkSize)))
 
 	var finalResponse []byte
 
+	var message []byte
+
 	for packetIndex <= packetCount {
-		header := make([]byte, 4)
-		header[0] = CLA
-		header[1] = INSSign
-		header[2] = packetIndex
-		header[3] = packetCount
-
+		header := []byte{CLA, INSSign, packetIndex, packetCount}
 		chunk := MessageChunkSize
-		if len(transaction) < MessageChunkSize {
-			chunk = len(transaction)
+		if packetIndex == 1 {
+			pathBytes, err := getBip32bytes(bip32_path)
+			if err != nil {
+				return nil, err
+			}
+			message = append(header, pathBytes...)
+		} else {
+			if len(transaction) < MessageChunkSize {
+				chunk = len(transaction)
+			}
+			message = append(header, transaction[:chunk]...)
 		}
-		message := append(header, transaction[:chunk]...)
-		response, err := ledger.Exchange(message)
 
+		response, err := ledger.Exchange(message)
 		if err != nil {
 			return nil, err
 		}
+
 		finalResponse = response
+		if packetIndex > 1 {
+			transaction = transaction[chunk:]
+		}
 		packetIndex++
-		transaction = transaction[chunk:]
+
 	}
 	return finalResponse, nil
 }
 
-func (ledger *Ledger) GetPublicKey() ([]byte, error) {
-	message := make([]byte, 2)
-	message[0] = CLA
-	message[1] = INSPublicKey
+func (ledger *Ledger) GetPublicKey(bip32_path []uint32) ([]byte, error) {
+	header := []byte{CLA, INSPublicKey}
+
+	pathBytes, err := getBip32bytes(bip32_path)
+	if err != nil {
+		return nil, err
+	}
+	message := append(header, pathBytes...)
+
 	response, err := ledger.Exchange(message)
 
 	if err != nil {
