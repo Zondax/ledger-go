@@ -32,11 +32,17 @@ const (
 	PacketSize = 64
 	CLA        = 0x55
 
-	INSGetVersion         = 0
-	INSPublicKeySECP256K1 = 1
-	INSPublicKeyED25519   = 2
-	INSSignSECP256K1      = 3
-	INSSignED25519        = 4
+	INSGetVersion         			= 0
+	INSPublicKeySECP256K1 			= 1
+	INSPublicKeyED25519   			= 2
+
+	// Sign sdk.Msg (transaction part of the message)
+	INSSignSECP256K1      			= 3
+	INSSignED25519        			= 4
+
+	// Sign sdk.StdSignMsg (full message)
+	INSSignSECP256K1_StdSignMsg    	= 5
+	INSSignED25519_StdSignMsg       = 6
 
 	INSHash                   = 100
 	INSPublicKeySECP256K1Test = 101
@@ -268,6 +274,14 @@ func (ledger *Ledger) SignSECP256K1(bip32_path []uint32, transaction []byte) ([]
 
 func (ledger *Ledger) SignED25519(bip32_path []uint32, transaction []byte) ([]byte, error) {
 	return ledger.sign(INSSignED25519, bip32_path, transaction)
+}
+
+func (ledger *Ledger) SignSECP256K1_StdSignMsg(bip32_path []uint32, transaction []byte) ([]byte, error) {
+	return ledger.sign(INSSignSECP256K1_StdSignMsg, bip32_path, transaction)
+}
+
+func (ledger *Ledger) SignED25519_StdSignMsg(bip32_path []uint32, transaction []byte) ([]byte, error) {
+	return ledger.sign(INSSignED25519_StdSignMsg, bip32_path, transaction)
 }
 
 func (ledger *Ledger) GetPublicKeySECP256K1(bip32_path []uint32) ([]byte, error) {
