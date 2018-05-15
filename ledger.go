@@ -36,11 +36,11 @@ const (
 	INSPublicKeySECP256K1 			= 1
 	INSPublicKeyED25519   			= 2
 
-	// Sign transaction message (Msg Interface)
+	// Sign sdk.Msg (transaction part of the message)
 	INSSignSECP256K1      			= 3
 	INSSignED25519        			= 4
 
-	// Sign standard sign message (full message)
+	// Sign sdk.StdSignMsg (full message)
 	INSSignSECP256K1_StdSignMsg    	= 5
 	INSSignED25519_StdSignMsg       = 6
 
