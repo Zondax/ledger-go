@@ -165,20 +165,32 @@ func (ledger *Ledger) Exchange(command []byte) ([]byte, error) {
 	swOffset := len(response) - 2
 	sw := codec.Uint16(response[swOffset:])
 
+	// FIXME: Code and description don't match for 0x6982 and 0x6983 based on
+	// apdu spec: https://www.eftlab.co.uk/index.php/site-map/knowledge-base/118-apdu-response-list
 	if sw != 0x9000 {
 		switch sw {
 		case 0x6400:
-			return nil, errors.New("APDU_CODE_EXECUTION_ERROR")
+			return nil, errors.New("[APDU_CODE_EXECUTION_ERROR] No information given (NV-Ram not changed).")
+		case 0x6700:
+			return nil, errors.New("[APDU_CODE_WRONG_LENGTH] Wrong length.")
 		case 0x6982:
-			return nil, errors.New("APDU_CODE_EMPTY_BUFFER")
+			return nil, errors.New("[APDU_CODE_EMPTY_BUFFER] Security condition not satisfied.")
 		case 0x6983:
-			return nil, errors.New("APDU_CODE_OUTPUT_BUFFER_TOO_SMALL")
+			return nil, errors.New("[APDU_CODE_OUTPUT_BUFFER_TOO_SMALL] Authentication method blocked.")
+		case 0x6984:
+			return nil, errors.New("[APDU_CODE_DATA_INVALID] Referenced data reversibly blocked (invalidated).")
+		case 0x6985:
+			return nil, errors.New("[APDU_CODE_CONDITIONS_NOT_SATISFIED] Conditions of use not satisfied.")
 		case 0x6986:
-			return nil, errors.New("APDU_CODE_COMMAND_NOT_ALLOWED")
+			return nil, errors.New("[APDU_CODE_COMMAND_NOT_ALLOWED] Command not allowed (no current EF).")
+		case 0x6A80:
+			return nil, errors.New("[APDU_CODE_BAD_KEY_HANDLE] The parameters in the data field are incorrect.")
+		case 0x6B00:
+			return nil, errors.New("[APDU_CODE_INVALIDP1P2] Wrong parameter(s) P1-P2.")
 		case 0x6D00:
-			return nil, errors.New("APDU_CODE_INS_NOT_SUPPORTED")
+			return nil, errors.New("[APDU_CODE_INS_NOT_SUPPORTED] Instruction code not supported or invalid.")
 		case 0x6E00:
-			return nil, errors.New("APDU_CODE_CLA_NOT_SUPPORTED")
+			return nil, errors.New("[APDU_CODE_CLA_NOT_SUPPORTED] Class not supported.")
 		case 0x6F00:
 			return nil, errors.New("APDU_CODE_UNKNOWN")
 		case 0x6F01:
