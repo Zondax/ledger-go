@@ -165,6 +165,9 @@ func (ledger *Ledger) Exchange(command []byte) ([]byte, error) {
 	swOffset := len(response) - 2
 	sw := codec.Uint16(response[swOffset:])
 
+	if ledger.Logging {
+		fmt.Printf("Response: [%3d]<= %s\n", len(response[:swOffset]), response[:swOffset])
+	}
 	// FIXME: Code and description don't match for 0x6982 and 0x6983 based on
 	// apdu spec: https://www.eftlab.co.uk/index.php/site-map/knowledge-base/118-apdu-response-list
 	if sw != 0x9000 {
@@ -197,10 +200,6 @@ func (ledger *Ledger) Exchange(command []byte) ([]byte, error) {
 			return nil, errors.New("APDU_CODE_SIGN_VERIFY_ERROR")
 		}
 		return nil, fmt.Errorf("invalid status %04x", sw)
-	}
-
-	if ledger.Logging {
-		fmt.Printf("[%3d]<= %x\n", len(response[:swOffset]), response[:swOffset])
 	}
 
 	return response[:swOffset], nil
