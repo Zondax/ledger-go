@@ -32,17 +32,17 @@ const (
 	PacketSize = 64
 	CLA        = 0x55
 
-	INSGetVersion         			= 0
-	INSPublicKeySECP256K1 			= 1
-	INSPublicKeyED25519   			= 2
+	INSGetVersion         = 0
+	INSPublicKeySECP256K1 = 1
+	INSPublicKeyED25519   = 2
 
 	// Sign sdk.Msg (transaction part of the message)
-	INSSignSECP256K1      			= 3
-	INSSignED25519        			= 4
+	INSSignSECP256K1 = 3
+	INSSignED25519   = 4
 
 	// Sign sdk.StdSignMsg (full message)
-	INSSignSECP256K1_StdSignMsg    	= 5
-	INSSignED25519_StdSignMsg       = 6
+	INSSignSECP256K1_StdSignMsg = 5
+	INSSignED25519_StdSignMsg   = 6
 
 	INSHash                   = 100
 	INSPublicKeySECP256K1Test = 101
@@ -136,6 +136,14 @@ func (ledger *Ledger) Exchange(command []byte) ([]byte, error) {
 		fmt.Printf("[%3d]=> %x\n", len(command), command)
 	}
 
+	if len(command) < 5 {
+		return nil, fmt.Errorf("APDU commands should not be smaller than 5")
+	}
+
+	if (byte)(len(command)-5) != command[4] {
+		return nil, fmt.Errorf("APDU[data length] mismatch")
+	}
+
 	serializedCommand, err := WrapCommandAPDU(Channel, command, PacketSize, false)
 
 	if err != nil {
@@ -206,9 +214,7 @@ func (ledger *Ledger) Exchange(command []byte) ([]byte, error) {
 }
 
 func (ledger *Ledger) GetVersion() (*VersionInfo, error) {
-	message := make([]byte, 2)
-	message[0] = CLA
-	message[1] = INSGetVersion
+	message := []byte{CLA, INSGetVersion, 0, 0, 0}
 	response, err := ledger.Exchange(message)
 
 	if err != nil {
@@ -249,18 +255,19 @@ func (ledger *Ledger) sign(instruction byte, bip32_path []uint32, transaction []
 	var message []byte
 
 	for packetIndex <= packetCount {
-		header := []byte{CLA, instruction, packetIndex, packetCount}
 		chunk := MessageChunkSize
 		if packetIndex == 1 {
 			pathBytes, err := getBip32bytes(bip32_path)
 			if err != nil {
 				return nil, err
 			}
+			header := []byte{CLA, instruction, packetIndex, packetCount, byte(len(pathBytes))}
 			message = append(header, pathBytes...)
 		} else {
 			if len(transaction) < MessageChunkSize {
 				chunk = len(transaction)
 			}
+			header := []byte{CLA, instruction, packetIndex, packetCount, byte(chunk)}
 			message = append(header, transaction[:chunk]...)
 		}
 
@@ -296,12 +303,11 @@ func (ledger *Ledger) SignED25519_StdSignMsg(bip32_path []uint32, transaction []
 }
 
 func (ledger *Ledger) GetPublicKeySECP256K1(bip32_path []uint32) ([]byte, error) {
-	header := []byte{CLA, INSPublicKeySECP256K1}
-
 	pathBytes, err := getBip32bytes(bip32_path)
 	if err != nil {
 		return nil, err
 	}
+	header := []byte{CLA, INSPublicKeySECP256K1, 0, 0, byte(len(pathBytes))}
 	message := append(header, pathBytes...)
 
 	response, err := ledger.Exchange(message)
@@ -318,12 +324,12 @@ func (ledger *Ledger) GetPublicKeySECP256K1(bip32_path []uint32) ([]byte, error)
 }
 
 func (ledger *Ledger) GetPublicKeyED25519(bip32_path []uint32) ([]byte, error) {
-	header := []byte{CLA, INSPublicKeyED25519}
-
 	pathBytes, err := getBip32bytes(bip32_path)
 	if err != nil {
 		return nil, err
 	}
+
+	header := []byte{CLA, INSPublicKeyED25519, 0, 0, byte(len(pathBytes))}
 	message := append(header, pathBytes...)
 
 	response, err := ledger.Exchange(message)
@@ -341,17 +347,17 @@ func (ledger *Ledger) GetPublicKeyED25519(bip32_path []uint32) ([]byte, error) {
 
 func (ledger *Ledger) Hash(transaction []byte) ([]byte, error) {
 
-	var packetIndex byte = 1
-	var packetCount byte = byte(math.Ceil(float64(len(transaction)) / float64(MessageChunkSize)))
+	var packetIndex = byte(1)
+	var packetCount = byte(math.Ceil(float64(len(transaction)) / float64(MessageChunkSize)))
 
 	var finalResponse []byte
 	for packetIndex <= packetCount {
-		header := []byte{CLA, INSHash, packetIndex, packetCount}
-
 		chunk := MessageChunkSize
 		if len(transaction) < MessageChunkSize {
 			chunk = len(transaction)
 		}
+
+		header := []byte{CLA, INSHash, packetIndex, packetCount, byte(chunk)}
 		message := append(header, transaction[:chunk]...)
 		response, err := ledger.Exchange(message)
 
@@ -366,7 +372,7 @@ func (ledger *Ledger) Hash(transaction []byte) ([]byte, error) {
 }
 
 func (ledger *Ledger) TestGetPublicKeySECP256K1() ([]byte, error) {
-	message := []byte{CLA, INSPublicKeySECP256K1Test}
+	message := []byte{CLA, INSPublicKeySECP256K1Test, 0, 0, 0}
 	response, err := ledger.Exchange(message)
 
 	if err != nil {
@@ -381,7 +387,7 @@ func (ledger *Ledger) TestGetPublicKeySECP256K1() ([]byte, error) {
 }
 
 func (ledger *Ledger) TestGetPublicKeyED25519() ([]byte, error) {
-	message := []byte{CLA, INSPublicKeyED25519Test}
+	message := []byte{CLA, INSPublicKeyED25519Test, 0, 0, 0}
 	response, err := ledger.Exchange(message)
 
 	if err != nil {
@@ -402,12 +408,13 @@ func (ledger *Ledger) TestSignSECP256K1(transaction []byte) ([]byte, error) {
 	var finalResponse []byte
 
 	for packetIndex <= packetCount {
-		header := []byte{CLA, INSSignSECP256K1Test, packetIndex, packetCount}
 
 		chunk := MessageChunkSize
 		if len(transaction) < MessageChunkSize {
 			chunk = len(transaction)
 		}
+
+		header := []byte{CLA, INSSignSECP256K1Test, packetIndex, packetCount, byte(chunk)}
 		message := append(header, transaction[:chunk]...)
 
 		response, err := ledger.Exchange(message)
@@ -430,12 +437,11 @@ func (ledger *Ledger) TestSignED25519(transaction []byte) ([]byte, error) {
 	var finalResponse []byte
 
 	for packetIndex <= packetCount {
-		header := []byte{CLA, INSSignED25519Test, packetIndex, packetCount}
-
 		chunk := MessageChunkSize
 		if len(transaction) < MessageChunkSize {
 			chunk = len(transaction)
 		}
+		header := []byte{CLA, INSSignED25519Test, packetIndex, packetCount, byte(chunk)}
 		message := append(header, transaction[:chunk]...)
 
 		response, err := ledger.Exchange(message)
