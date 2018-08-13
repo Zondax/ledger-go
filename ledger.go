@@ -241,7 +241,12 @@ func getBip32bytes(bip32_path []uint32) ([]byte, error) {
 	message[0] = byte(len(bip32_path))
 	for index, element := range bip32_path {
 		pos := 1 + index*4
-		binary.LittleEndian.PutUint32(message[pos:], 0x80000000|element)
+		value := element
+		// Harden 0, 1, 2
+		if index <= 2 {
+			value = 0x80000000 | element
+		}
+		binary.LittleEndian.PutUint32(message[pos:], value)
 	}
 	return message, nil
 }
