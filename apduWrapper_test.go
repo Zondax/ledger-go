@@ -14,7 +14,7 @@
 *  limitations under the License.
 ********************************************************************************/
 
-package ledger_goclient
+package ledger_go
 
 import (
 	"testing"
@@ -217,7 +217,7 @@ func Test_WrapCommandAPDU_CheckData(t *testing.T) {
 	command = command[64-5:]
 
 	// Check data in the last packet
-	assert.True(t, bytes.Compare(command[0:len(command)], result[5:5+len(command)]) == 0)
+	assert.True(t, bytes.Compare(command[0:], result[5:5+len(command)]) == 0)
 
 	// The remaining bytes in the result should be zeros
 	result = result[5+len(command):]

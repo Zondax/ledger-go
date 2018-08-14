@@ -14,7 +14,7 @@
 *  limitations under the License.
 ********************************************************************************/
 
-package ledger_goclient
+package ledger_go
 
 import (
 	"github.com/pkg/errors"
@@ -135,7 +135,7 @@ func UnwrapResponseAPDU(channel uint16, pipe <- chan []byte, packetSize int, ble
 
 	var totalResult []byte
 	var totalSize uint16
-	var finished bool = false
+	var finished = false
 	for !finished {
 
 		// Read next packet from the channel
