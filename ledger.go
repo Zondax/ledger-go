@@ -144,7 +144,7 @@ func (ledger *Ledger) Exchange(command []byte) ([]byte, error) {
 	sw := codec.Uint16(response[swOffset:])
 
 	if ledger.Logging {
-		fmt.Printf("Response: [%3d]<= %s\n", len(response[:swOffset]), response[:swOffset])
+		fmt.Printf("Response: [%3d]<= %s [%#x]\n", len(response[:swOffset]), response[:swOffset], sw)
 	}
 	// FIXME: Code and description don't match for 0x6982 and 0x6983 based on
 	// apdu spec: https://www.eftlab.co.uk/index.php/site-map/knowledge-base/118-apdu-response-list
