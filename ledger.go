@@ -18,9 +18,9 @@ package ledger_goclient
 
 import (
 	"encoding/binary"
-	"fmt"
 	"errors"
-	"github.com/brejski/hid"
+	"fmt"
+	"github.com/ZondaX/hid-go"
 	"math"
 )
 
