@@ -19,7 +19,7 @@ package ledger_go
 import (
 	"errors"
 	"fmt"
-	"github.com/brejski/hid"
+	"github.com/ZondaX/hid"
 )
 
 const (
