@@ -1,6 +1,6 @@
 [[constraint]]
-  branch = "master"
   name = "github.com/ZondaX/hid-go"
+  version = "v0.4.0"
 
 [[constraint]]
   name = "github.com/pkg/errors"
