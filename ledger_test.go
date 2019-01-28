@@ -1,0 +1,69 @@
+/*******************************************************************************
+*   (c) 2018 ZondaX GmbH
+*
+*  Licensed under the Apache License, Version 2.0 (the "License");
+*  you may not use this file except in compliance with the License.
+*  You may obtain a copy of the License at
+*
+*      http://www.apache.org/licenses/LICENSE-2.0
+*
+*  Unless required by applicable law or agreed to in writing, software
+*  distributed under the License is distributed on an "AS IS" BASIS,
+*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+*  See the License for the specific language governing permissions and
+*  limitations under the License.
+********************************************************************************/
+
+package ledger_go
+
+import (
+	"fmt"
+	"github.com/ZondaX/hid-go"
+	"github.com/stretchr/testify/assert"
+	"testing"
+)
+
+func Test_ThereAreDevices(t *testing.T) {
+	devices, err := hid.Devices()
+	if err != nil {
+		fmt.Printf("Error: %s", err)
+	}
+
+	assert.NotEqual(t, 0, len(devices))
+}
+
+func Test_FindLedger(t *testing.T) {
+	ledger, err := FindLedger()
+	if err != nil {
+		fmt.Println("\n*********************************")
+		fmt.Println("Did you enter the password??")
+		fmt.Println("*********************************")
+		t.Fatalf( "Error: %s", err.Error())
+	}
+	assert.NotNil(t, ledger)
+}
+
+func Test_BasicExchange(t *testing.T) {
+	ledger, err := FindLedger()
+	if err != nil {
+		fmt.Println("\n*********************************")
+		fmt.Println("Did you enter the password??")
+		fmt.Println("*********************************")
+		t.Fatalf( "Error: %s", err.Error())
+	}
+	assert.NotNil(t, ledger)
+
+	message := []byte{0x55, 0, 0, 0, 0}
+
+	for i := 0; i < 500; i++ {
+		response, err := ledger.Exchange(message)
+
+		if err != nil {
+			fmt.Printf("iteration %d\n", i)
+			t.Fatalf( "Error: %s", err.Error())
+		}
+
+		assert.Equal(t, 4, len(response))
+	}
+
+}
