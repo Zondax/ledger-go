@@ -19,7 +19,7 @@ package ledger_go
 import (
 	"errors"
 	"fmt"
-	"github.com/karalabe/hid"
+	"github.com/ZondaX/hid"
 	"sync"
 )
 
