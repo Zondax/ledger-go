@@ -1,5 +1,5 @@
 [[constraint]]
-  name = "github.com/ZondaX/hid"
+  name = "github.com/zondax/hid"
   version = "0.9.0"
 
 [[constraint]]
@@ -14,5 +14,5 @@
   go-tests = true
   unused-packages = true
   [[prune.project]]
-      name = "github.com/ZondaX/hid"
+      name = "github.com/zondax/hid"
       unused-packages = false
