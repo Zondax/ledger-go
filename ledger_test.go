@@ -21,7 +21,7 @@ package ledger_go
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/ZondaX/hid"
+	"github.com/zondax/hid"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
