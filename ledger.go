@@ -77,6 +77,15 @@ func FindLedger() (*Ledger, error) {
 			}
 			return NewLedger(device), nil
 		}
+
+		// Linux discovery
+		if d.VendorID == VendorLedger && d.Product == "Nano S" && d.Interface == 0 {
+			device, err := d.Open()
+			if err != nil {
+				return nil, err
+			}
+			return NewLedger(device), nil
+		}
 	}
 	return nil, errors.New("no ledger connected")
 }
