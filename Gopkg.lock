@@ -18,6 +18,14 @@
   version = "v1.1.1"
 
 [[projects]]
+  branch = "master"
+  digest = "1:447562773a19dc1719359c2cd70d275c62c0b89f79d763f41d5deedb0e69873f"
+  name = "github.com/karalabe/hid"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "d815e0c1a2e2082a287a2806bc90bc8fc7b276a9"
+
+[[projects]]
   digest = "1:40e195917a951a8bf867cd05de2a46aaf1806c50cf92eebf4c16f78cd196f747"
   name = "github.com/pkg/errors"
   packages = ["."]
@@ -46,6 +54,7 @@
   analyzer-version = 1
   input-imports = [
     "github.com/ZondaX/hid-go",
+    "github.com/karalabe/hid",
     "github.com/pkg/errors",
     "github.com/stretchr/testify/assert",
   ]

@@ -17,6 +17,7 @@
 package ledger_go
 
 import (
+	"encoding/hex"
 	"fmt"
 	"github.com/ZondaX/hid-go"
 	"github.com/stretchr/testify/assert"
@@ -30,6 +31,10 @@ func Test_ThereAreDevices(t *testing.T) {
 	}
 
 	assert.NotEqual(t, 0, len(devices))
+}
+
+func Test_ListDevices(t *testing.T) {
+	ListDevices()
 }
 
 func Test_FindLedger(t *testing.T) {
@@ -55,7 +60,7 @@ func Test_BasicExchange(t *testing.T) {
 
 	message := []byte{0x55, 0, 0, 0, 0}
 
-	for i := 0; i < 500; i++ {
+	for i := 0; i < 10; i++ {
 		response, err := ledger.Exchange(message)
 
 		if err != nil {
@@ -65,5 +70,32 @@ func Test_BasicExchange(t *testing.T) {
 
 		assert.Equal(t, 4, len(response))
 	}
+}
 
+func Test_LongExchange(t *testing.T) {
+	ledger, err := FindLedger()
+	if err != nil {
+		fmt.Println("\n*********************************")
+		fmt.Println("Did you enter the password??")
+		fmt.Println("*********************************")
+		t.Fatalf( "Error: %s", err.Error())
+	}
+	assert.NotNil(t, ledger)
+
+	path := "052c000080760000800000008000000000000000000000000000000000000000000000000000000000";
+	pathBytes, err := hex.DecodeString(path)
+	if err != nil {
+		t.Fatalf("invalid path in test")
+	}
+
+	header := []byte { 0x55, 1, 0, 0, byte(len(pathBytes))}
+	message := append(header, pathBytes...)
+
+	response, err := ledger.Exchange(message)
+
+	if err != nil {
+		t.Fatalf( "Error: %s", err.Error())
+	}
+
+	assert.Equal(t, 4, len(response))
 }

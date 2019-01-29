@@ -19,7 +19,7 @@ package ledger_go
 import (
 	"errors"
 	"fmt"
-	"github.com/ZondaX/hid-go"
+	"github.com/karalabe/hid"
 )
 
 const (
@@ -31,22 +31,19 @@ const (
 )
 
 type Ledger struct {
-	device  Device
+	device  hid.Device
 	Logging bool
 }
 
-func NewLedger(dev Device) *Ledger {
+func NewLedger(dev *hid.Device) *Ledger {
 	return &Ledger{
-		device:  dev,
+		device:  *dev,
 		Logging: false,
 	}
 }
 
 func ListDevices() {
-	devices, err := hid.Devices()
-	if err != nil {
-		fmt.Printf("Error: %s", err)
-	}
+	devices := hid.Enumerate(0, 0)
 
 	if len(devices) == 0 {
 		fmt.Printf("No devices")
@@ -54,11 +51,12 @@ func ListDevices() {
 
 	for _, d := range devices {
 		fmt.Printf("============ %s\n", d.Path)
+		fmt.Printf("VendorID      : %x\n", d.VendorID)
+		fmt.Printf("ProductID     : %x\n", d.ProductID)
+		fmt.Printf("Release       : %x\n", d.Release)
+		fmt.Printf("Serial        : %x\n", d.Serial)
 		fmt.Printf("Manufacturer  : %s\n", d.Manufacturer)
 		fmt.Printf("Product       : %s\n", d.Product)
-		fmt.Printf("ProductID     : %x\n", d.ProductID)
-		fmt.Printf("VendorID      : %x\n", d.VendorID)
-		fmt.Printf("VersionNumber : %x\n", d.VersionNumber)
 		fmt.Printf("UsagePage     : %x\n", d.UsagePage)
 		fmt.Printf("Usage         : %x\n", d.Usage)
 		fmt.Printf("\n")
@@ -66,10 +64,8 @@ func ListDevices() {
 }
 
 func FindLedger() (*Ledger, error) {
-	devices, err := hid.Devices()
-	if err != nil {
-		return nil, err
-	}
+	devices := hid.Enumerate(VendorLedger, 0)
+
 	for _, d := range devices {
 		if d.VendorID == VendorLedger && d.UsagePage == UsagePageLedger {
 			device, err := d.Open()
@@ -99,6 +95,40 @@ type Device interface {
 	// ReadError returns the read error, if any after the channel returned from
 	// ReadCh has been closed.
 	ReadError() error
+func ErrorMessage(errorCode uint16) string {
+	switch errorCode {
+	// FIXME: Code and description don't match for 0x6982 and 0x6983 based on
+	// apdu spec: https://www.eftlab.co.uk/index.php/site-map/knowledge-base/118-apdu-response-list
+
+	case 0x6400:
+		return "[APDU_CODE_EXECUTION_ERROR] No information given (NV-Ram not changed)"
+	case 0x6700:
+		return "[APDU_CODE_WRONG_LENGTH] Wrong length"
+	case 0x6982:
+		return "[APDU_CODE_EMPTY_BUFFER] Security condition not satisfied"
+	case 0x6983:
+		return "[APDU_CODE_OUTPUT_BUFFER_TOO_SMALL] Authentication method blocked"
+	case 0x6984:
+		return "[APDU_CODE_DATA_INVALID] Referenced data reversibly blocked (invalidated)"
+	case 0x6985:
+		return "[APDU_CODE_CONDITIONS_NOT_SATISFIED] Conditions of use not satisfied"
+	case 0x6986:
+		return "[APDU_CODE_COMMAND_NOT_ALLOWED] Command not allowed (no current EF)"
+	case 0x6A80:
+		return "[APDU_CODE_BAD_KEY_HANDLE] The parameters in the data field are incorrect"
+	case 0x6B00:
+		return "[APDU_CODE_INVALIDP1P2] Wrong parameter(s) P1-P2"
+	case 0x6D00:
+		return "[APDU_CODE_INS_NOT_SUPPORTED] Instruction code not supported or invalid"
+	case 0x6E00:
+		return "[APDU_CODE_CLA_NOT_SUPPORTED] Class not supported"
+	case 0x6F00:
+		return "APDU_CODE_UNKNOWN"
+	case 0x6F01:
+		return "APDU_CODE_SIGN_VERIFY_ERROR"
+	default:
+		return fmt.Sprintf("Error code: %04x", errorCode)
+	}
 }
 
 func (ledger *Ledger) Exchange(command []byte) ([]byte, error) {
@@ -114,8 +144,7 @@ func (ledger *Ledger) Exchange(command []byte) ([]byte, error) {
 		return nil, fmt.Errorf("APDU[data length] mismatch")
 	}
 
-	serializedCommand, err := WrapCommandAPDU(Channel, command, PacketSize, false)
-
+	serializedCommand, err := WrapCommandAPDU(Channel, command, PacketSize)
 	if err != nil {
 		return nil, err
 	}
@@ -134,10 +163,9 @@ func (ledger *Ledger) Exchange(command []byte) ([]byte, error) {
 	}
 
 	input := ledger.device.ReadCh()
-	response, err := UnwrapResponseAPDU(Channel, input, PacketSize, false)
 
 	if len(response) < 2 {
-		return nil, fmt.Errorf("lost connection")
+		return nil, fmt.Errorf("len(response) < 2")
 	}
 
 	swOffset := len(response) - 2
@@ -146,38 +174,8 @@ func (ledger *Ledger) Exchange(command []byte) ([]byte, error) {
 	if ledger.Logging {
 		fmt.Printf("Response: [%3d]<= %x [%#x]\n", len(response[:swOffset]), response[:swOffset], sw)
 	}
-	// FIXME: Code and description don't match for 0x6982 and 0x6983 based on
-	// apdu spec: https://www.eftlab.co.uk/index.php/site-map/knowledge-base/118-apdu-response-list
 	if sw != 0x9000 {
-		switch sw {
-		case 0x6400:
-			return nil, errors.New("[APDU_CODE_EXECUTION_ERROR] No information given (NV-Ram not changed)")
-		case 0x6700:
-			return nil, errors.New("[APDU_CODE_WRONG_LENGTH] Wrong length")
-		case 0x6982:
-			return nil, errors.New("[APDU_CODE_EMPTY_BUFFER] Security condition not satisfied")
-		case 0x6983:
-			return nil, errors.New("[APDU_CODE_OUTPUT_BUFFER_TOO_SMALL] Authentication method blocked")
-		case 0x6984:
-			return nil, errors.New("[APDU_CODE_DATA_INVALID] Referenced data reversibly blocked (invalidated)")
-		case 0x6985:
-			return nil, errors.New("[APDU_CODE_CONDITIONS_NOT_SATISFIED] Conditions of use not satisfied")
-		case 0x6986:
-			return nil, errors.New("[APDU_CODE_COMMAND_NOT_ALLOWED] Command not allowed (no current EF)")
-		case 0x6A80:
-			return nil, errors.New("[APDU_CODE_BAD_KEY_HANDLE] The parameters in the data field are incorrect")
-		case 0x6B00:
-			return nil, errors.New("[APDU_CODE_INVALIDP1P2] Wrong parameter(s) P1-P2")
-		case 0x6D00:
-			return nil, errors.New("[APDU_CODE_INS_NOT_SUPPORTED] Instruction code not supported or invalid")
-		case 0x6E00:
-			return nil, errors.New("[APDU_CODE_CLA_NOT_SUPPORTED] Class not supported")
-		case 0x6F00:
-			return nil, errors.New("APDU_CODE_UNKNOWN")
-		case 0x6F01:
-			return nil, errors.New("APDU_CODE_SIGN_VERIFY_ERROR")
-		}
-		return nil, fmt.Errorf("invalid status %04x", sw)
+		return nil, errors.New(ErrorMessage(sw))
 	}
 
 	return response[:swOffset], nil
