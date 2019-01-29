@@ -1,6 +1,6 @@
 [[constraint]]
-  name = "github.com/ZondaX/hid-go"
-  version = "v0.4.0"
+  name = "github.com/karalabe/hid"
+  branch = "master"
 
 [[constraint]]
   name = "github.com/pkg/errors"
@@ -13,3 +13,6 @@
 [prune]
   go-tests = true
   unused-packages = true
+  [[prune.project]]
+      name = "github.com/karalabe/hid"
+      unused-packages = false

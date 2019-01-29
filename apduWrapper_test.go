@@ -17,18 +17,18 @@
 package ledger_go
 
 import (
-	"testing"
-	"github.com/stretchr/testify/assert"
-	"unsafe"
 	"bytes"
-	"time"
+	"fmt"
+	"github.com/stretchr/testify/assert"
 	"math"
+	"testing"
+	"unsafe"
 )
 
 func Test_SerializePacket_EmptyCommand(t *testing.T) {
 	var command= make([]byte, 1)
 
-	_, _, err := SerializePacket(0x0101, command, 64, 0, false)
+	_, _, err := SerializePacket(0x0101, command, 64, 0)
 	assert.Nil(t, err, "Commands smaller than 3 bytes should return error")
 }
 
@@ -50,8 +50,7 @@ func Test_SerializePacket_PacketSize(t *testing.T) {
 		h.channel,
 		command,
 		packetSize,
-		h.sequenceIdx,
-		false)
+		h.sequenceIdx)
 
 	assert.Equal(t, len(result), packetSize, "Packet size is wrong")
 }
@@ -74,8 +73,7 @@ func Test_SerializePacket_Header(t *testing.T) {
 		h.channel,
 		command,
 		packetSize,
-		h.sequenceIdx,
-		false)
+		h.sequenceIdx)
 
 	assert.Equal(t, codec.Uint16(result), h.channel, "Channel not properly serialized")
 	assert.Equal(t, result[2], h.tag, "Tag not properly serialized")
@@ -101,8 +99,7 @@ func Test_SerializePacket_Offset(t *testing.T) {
 		h.channel,
 		command,
 		packetSize,
-		h.sequenceIdx,
-		false)
+		h.sequenceIdx)
 
 	assert.Equal(t, packetSize - int(unsafe.Sizeof(h))+1, offset, "Wrong offset returned. Offset must point to the next comamnd byte that needs to be packet-ized.")
 }
@@ -129,8 +126,7 @@ func Test_WrapCommandAPDU_NumberOfPackets(t *testing.T) {
 	result, _ := WrapCommandAPDU(
 		h1.channel,
 		command,
-		packetSize,
-		false)
+		packetSize)
 
 	assert.Equal(t, packetSize*2, len(result), "Result buffer size is not correct")
 }
@@ -157,8 +153,7 @@ func Test_WrapCommandAPDU_CheckHeaders(t *testing.T) {
 	result, _ := WrapCommandAPDU(
 		h1.channel,
 		command,
-		packetSize,
-		false)
+		packetSize)
 
 	assert.Equal(t, h1.channel, codec.Uint16(result), "Channel not properly serialized")
 	assert.Equal(t, h1.tag, result[2], "Tag not properly serialized")
@@ -197,8 +192,7 @@ func Test_WrapCommandAPDU_CheckData(t *testing.T) {
 	result, _ := WrapCommandAPDU(
 		h1.channel,
 		command,
-		packetSize,
-		false)
+		packetSize)
 
 	// Check data in the first packet
 	assert.True(t, bytes.Compare(command[0:64-7], result[7:64]) == 0)
@@ -230,9 +224,9 @@ func Test_DeserializePacket_FirstPacket(t *testing.T) {
 
 	var packetSize int = 64
 	var firstPacketHeaderSize int = 7
-	packet, _, _ := SerializePacket(0x0101, sampleCommand, packetSize, 0, false)
+	packet, _, _ := SerializePacket(0x0101, sampleCommand, packetSize, 0)
 
-	output, totalSize, err := DeserializePacket(0x0101, packet, 0, false)
+	output, totalSize, err := DeserializePacket(0x0101, packet, 0)
 
 	assert.Nil(t,err, "Simple deserialize should not have errors")
 	assert.Equal(t, len(sampleCommand), int(totalSize), "TotalSize is incorrect")
@@ -241,14 +235,13 @@ func Test_DeserializePacket_FirstPacket(t *testing.T) {
 }
 
 func Test_DeserializePacket_SecondMessage(t *testing.T) {
-
 	var sampleCommand = []byte{'H', 'e', 'l', 'l', 'o', 0}
 
 	var packetSize int = 64
 	var firstPacketHeaderSize int = 5 // second packet does not have responseLegth (uint16) in the header
-	packet, _, _ := SerializePacket(0x0101, sampleCommand, packetSize, 1, false)
+	packet, _, _ := SerializePacket(0x0101, sampleCommand, packetSize, 1)
 
-	output, totalSize, err := DeserializePacket(0x0101, packet, 1, false)
+	output, totalSize, err := DeserializePacket(0x0101, packet, 1)
 
 	assert.Nil(t,err, "Simple deserialize should not have errors")
 	assert.Equal(t, 0, int(totalSize), "TotalSize should not be returned from deserialization of non-first packet")
@@ -256,37 +249,36 @@ func Test_DeserializePacket_SecondMessage(t *testing.T) {
 	assert.True(t, bytes.Compare(output[:len(sampleCommand)], sampleCommand) == 0, "Deserialized message does not match the original")
 }
 
-func WriteBuffer(pipe chan<- []byte, buffer []byte) {
-	time.Sleep(1 * time.Second)
-	pipe <- buffer
-}
-
 func Test_UnwrapApdu_SmokeTest(t *testing.T) {
+	const channel uint16 = 0x8002
 
 	inputSize := 200
 	var packetSize int = 64
-	var input= make([]byte, inputSize)
-	var channel uint16 = 0x8002
 
+	// Initialize some dummy input
+	var input= make([]byte, inputSize)
 	for i := range input {
 		input[i] = byte(i % 256)
 	}
-	serialized, _ := WrapCommandAPDU(
-		channel,
-		input,
-		packetSize,
-		false)
+
+	serialized, _ := WrapCommandAPDU(channel, input, packetSize)
 
 	// Allocate enough buffers to keep all the packets
 	pipe := make(chan []byte, int(math.Ceil(float64(inputSize) / float64(packetSize))))
-
 	// Send all the packets to the pipe
 	for len(serialized) > 0 {
 		pipe <- serialized[:packetSize]
 		serialized = serialized[packetSize:]
 	}
 
-	output, _ := UnwrapResponseAPDU(channel, pipe, packetSize, false)
+	output, _ := UnwrapResponseAPDU(channel, pipe, packetSize)
+
+	fmt.Printf("INPUT     : %x\n", input)
+	fmt.Printf("SERIALIZED: %x\n", serialized)
+	fmt.Printf("OUTPUT    : %x\n", output)
+
 	assert.Equal(t, len(input), len(output), "Input and output messages have different size")
-	assert.True(t, bytes.Compare(input, output) == 0, "Input message does not match message which was serialized and then deserialized")
+	assert.True(t,
+		bytes.Compare(input, output) == 0,
+		"Input message does not match message which was serialized and then deserialized")
 }
