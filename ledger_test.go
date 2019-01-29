@@ -21,17 +21,13 @@ package ledger_go
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/ZondaX/hid-go"
+	"github.com/ZondaX/hid"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
 func Test_ThereAreDevices(t *testing.T) {
-	devices, err := hid.Devices()
-	if err != nil {
-		fmt.Printf("Error: %s", err)
-	}
-
+	devices := hid.Enumerate(0, 0)
 	assert.NotEqual(t, 0, len(devices))
 }
 

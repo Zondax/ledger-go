@@ -1,6 +1,6 @@
 [[constraint]]
-  name = "github.com/karalabe/hid"
-  branch = "master"
+  name = "github.com/ZondaX/hid"
+  version = "0.9.0"
 
 [[constraint]]
   name = "github.com/pkg/errors"
@@ -14,5 +14,5 @@
   go-tests = true
   unused-packages = true
   [[prune.project]]
-      name = "github.com/karalabe/hid"
+      name = "github.com/ZondaX/hid"
       unused-packages = false

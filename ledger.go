@@ -19,7 +19,7 @@ package ledger_go
 import (
 	"errors"
 	"fmt"
-	"github.com/karalabe/hid"
+	"github.com/ZondaX/hid"
 	"sync"
 )
 
@@ -71,6 +71,15 @@ func FindLedger() (*Ledger, error) {
 
 	for _, d := range devices {
 		if d.VendorID == VendorLedger && d.UsagePage == UsagePageLedger {
+			device, err := d.Open()
+			if err != nil {
+				return nil, err
+			}
+			return NewLedger(device), nil
+		}
+
+		// Linux discovery
+		if d.VendorID == VendorLedger && d.Product == "Nano S" && d.Interface == 0 {
 			device, err := d.Open()
 			if err != nil {
 				return nil, err
