@@ -122,7 +122,11 @@ func (ledger *Ledger) Write(buffer []byte) (int, error) {
 	totalWrittenBytes := 0
 	for totalBytes > totalWrittenBytes {
 		writtenBytes, err := ledger.device.Write(buffer)
-		fmt.Printf("[%3d] =) %x\n", writtenBytes, buffer[:writtenBytes])
+
+		if ledger.Logging {
+			fmt.Printf("[%3d] =) %x\n", writtenBytes, buffer[:writtenBytes])
+		}
+
 		if err != nil {
 			return totalWrittenBytes, err
 		}
@@ -148,7 +152,11 @@ func (ledger *Ledger) readThread() {
 	for {
 		buffer := make([]byte, PacketSize)
 		readBytes, err := ledger.device.Read(buffer)
-		fmt.Printf("[%3d] (= %x\n", readBytes, buffer[:readBytes])
+
+		if ledger.Logging {
+			fmt.Printf("[%3d] (= %x\n", readBytes, buffer[:readBytes])
+		}
+
 		if err != nil {
 			return
 		}
@@ -157,8 +165,6 @@ func (ledger *Ledger) readThread() {
 		default:
 		}
 	}
-
-	fmt.Printf("[000] (= EXIT\n")
 }
 
 func (ledger *Ledger) Exchange(command []byte) ([]byte, error) {
