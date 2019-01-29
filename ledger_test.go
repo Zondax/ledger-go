@@ -97,5 +97,5 @@ func Test_LongExchange(t *testing.T) {
 		t.Fatalf( "Error: %s", err.Error())
 	}
 
-	assert.Equal(t, 4, len(response))
+	assert.Equal(t, 65, len(response))
 }

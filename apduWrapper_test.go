@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/stretchr/testify/assert"
+	"math"
 	"testing"
 	"unsafe"
 )
@@ -262,7 +263,15 @@ func Test_UnwrapApdu_SmokeTest(t *testing.T) {
 
 	serialized, _ := WrapCommandAPDU(channel, input, packetSize)
 
-	output, _ := UnwrapResponseAPDU(channel, serialized, packetSize)
+	// Allocate enough buffers to keep all the packets
+	pipe := make(chan []byte, int(math.Ceil(float64(inputSize) / float64(packetSize))))
+	// Send all the packets to the pipe
+	for len(serialized) > 0 {
+		pipe <- serialized[:packetSize]
+		serialized = serialized[packetSize:]
+	}
+
+	output, _ := UnwrapResponseAPDU(channel, pipe, packetSize)
 
 	fmt.Printf("INPUT     : %x\n", input)
 	fmt.Printf("SERIALIZED: %x\n", serialized)

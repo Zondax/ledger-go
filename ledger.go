@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/karalabe/hid"
+	"sync"
 )
 
 const (
@@ -31,8 +32,10 @@ const (
 )
 
 type Ledger struct {
-	device  hid.Device
-	Logging bool
+	device      hid.Device
+	readCo      sync.Once
+	readChannel chan [] byte
+	Logging     bool
 }
 
 func NewLedger(dev *hid.Device) *Ledger {
@@ -78,23 +81,6 @@ func FindLedger() (*Ledger, error) {
 	return nil, errors.New("no ledger connected")
 }
 
-// A Device provides access to a HID device.
-type Device interface {
-	// Close closes the device and associated resources.
-	Close()
-
-	// Write writes an output report to device. The first byte must be the
-	// report number to write, zero if the device does not use numbered reports.
-	Write([]byte) error
-
-	// ReadCh returns a channel that will be sent input reports from the device.
-	// If the device uses numbered reports, the first byte will be the report
-	// number.
-	ReadCh() <-chan []byte
-
-	// ReadError returns the read error, if any after the channel returned from
-	// ReadCh has been closed.
-	ReadError() error
 func ErrorMessage(errorCode uint16) string {
 	switch errorCode {
 	// FIXME: Code and description don't match for 0x6982 and 0x6983 based on
@@ -131,6 +117,50 @@ func ErrorMessage(errorCode uint16) string {
 	}
 }
 
+func (ledger *Ledger) Write(buffer []byte) (int, error) {
+	totalBytes := len(buffer)
+	totalWrittenBytes := 0
+	for totalBytes > totalWrittenBytes {
+		writtenBytes, err := ledger.device.Write(buffer)
+		fmt.Printf("[%3d] =) %x\n", writtenBytes, buffer[:writtenBytes])
+		if err != nil {
+			return totalWrittenBytes, err
+		}
+		buffer = buffer[writtenBytes:]
+		totalWrittenBytes += writtenBytes
+	}
+	return totalWrittenBytes, nil
+}
+
+func (ledger *Ledger) Read() <-chan []byte {
+	ledger.readCo.Do(ledger.initReadChannel)
+	return ledger.readChannel
+}
+
+func (ledger *Ledger) initReadChannel(){
+	ledger.readChannel = make(chan []byte, 30)
+	go ledger.readThread()
+}
+
+func (ledger *Ledger) readThread() {
+	defer close(ledger.readChannel)
+
+	for {
+		buffer := make([]byte, PacketSize)
+		readBytes, err := ledger.device.Read(buffer)
+		fmt.Printf("[%3d] (= %x\n", readBytes, buffer[:readBytes])
+		if err != nil {
+			return
+		}
+		select {
+		case ledger.readChannel <- buffer[:readBytes]:
+		default:
+		}
+	}
+
+	fmt.Printf("[000] (= EXIT\n")
+}
+
 func (ledger *Ledger) Exchange(command []byte) ([]byte, error) {
 	if ledger.Logging {
 		fmt.Printf("[%3d]=> %x\n", len(command), command)
@@ -150,19 +180,14 @@ func (ledger *Ledger) Exchange(command []byte) ([]byte, error) {
 	}
 
 	// Write all the packets
-	err = ledger.device.Write(serializedCommand[:PacketSize])
+	_, err = ledger.Write(serializedCommand)
 	if err != nil {
 		return nil, err
 	}
-	for len(serializedCommand) > PacketSize {
-		serializedCommand = serializedCommand[PacketSize:]
-		err = ledger.device.Write(serializedCommand[:PacketSize])
-		if err != nil {
-			return nil, err
-		}
-	}
 
-	input := ledger.device.ReadCh()
+	readChannel := ledger.Read()
+
+	response, err := UnwrapResponseAPDU(Channel, readChannel, PacketSize)
 
 	if len(response) < 2 {
 		return nil, fmt.Errorf("len(response) < 2")

@@ -131,11 +131,12 @@ func UnwrapResponseAPDU(channel uint16, pipe <- chan []byte, packetSize int) ([]
 
 	var totalResult []byte
 	var totalSize uint16
-	var finished = false
-	for !finished {
+	var done = false
 
+	for !done {
 		// Read next packet from the channel
 		buffer := <- pipe
+
 		result, responseSize, err := DeserializePacket(channel, buffer, sequenceIdx)
 		if err != nil {
 			return nil, err
@@ -149,7 +150,7 @@ func UnwrapResponseAPDU(channel uint16, pipe <- chan []byte, packetSize int) ([]
 		sequenceIdx++
 
 		if len(totalResult) >= int(totalSize) {
-			finished = true
+			done = true
 		}
 	}
 
