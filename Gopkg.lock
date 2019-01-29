@@ -2,11 +2,11 @@
 
 
 [[projects]]
-  digest = "1:f7ad53b0ed18b568540a0030dae4150856bf904c125d962f1119ff235ecbbc27"
+  digest = "1:b73f5e117bc7c6e8fc47128f20db48a873324ad5cfeeebfc505e85c58682b5e4"
   name = "github.com/ZondaX/hid"
   packages = ["."]
   pruneopts = "T"
-  revision = "c9f19e5fcd50b61a386358a607d61cd3258c514e"
+  revision = "302fd402163c34626286195dfa9adac758334acc"
   version = "v0.9.0"
 
 [[projects]]
