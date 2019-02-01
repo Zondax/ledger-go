@@ -120,6 +120,10 @@ func ErrorMessage(errorCode uint16) string {
 	}
 }
 
+func (ledger *Ledger) Close() error {
+	return ledger.device.Close()
+}
+
 func (ledger *Ledger) Write(buffer []byte) (int, error) {
 	totalBytes := len(buffer)
 	totalWrittenBytes := 0
