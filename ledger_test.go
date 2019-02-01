@@ -21,8 +21,8 @@ package ledger_go
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/zondax/hid"
 	"github.com/stretchr/testify/assert"
+	"github.com/zondax/hid"
 	"testing"
 )
 
@@ -41,7 +41,7 @@ func Test_FindLedger(t *testing.T) {
 		fmt.Println("\n*********************************")
 		fmt.Println("Did you enter the password??")
 		fmt.Println("*********************************")
-		t.Fatalf( "Error: %s", err.Error())
+		t.Fatalf("Error: %s", err.Error())
 	}
 	assert.NotNil(t, ledger)
 }
@@ -52,7 +52,7 @@ func Test_BasicExchange(t *testing.T) {
 		fmt.Println("\n*********************************")
 		fmt.Println("Did you enter the password??")
 		fmt.Println("*********************************")
-		t.Fatalf( "Error: %s", err.Error())
+		t.Fatalf("Error: %s", err.Error())
 	}
 	assert.NotNil(t, ledger)
 
@@ -63,7 +63,7 @@ func Test_BasicExchange(t *testing.T) {
 
 		if err != nil {
 			fmt.Printf("iteration %d\n", i)
-			t.Fatalf( "Error: %s", err.Error())
+			t.Fatalf("Error: %s", err.Error())
 		}
 
 		assert.Equal(t, 4, len(response))
@@ -76,23 +76,23 @@ func Test_LongExchange(t *testing.T) {
 		fmt.Println("\n*********************************")
 		fmt.Println("Did you enter the password??")
 		fmt.Println("*********************************")
-		t.Fatalf( "Error: %s", err.Error())
+		t.Fatalf("Error: %s", err.Error())
 	}
 	assert.NotNil(t, ledger)
 
-	path := "052c000080760000800000008000000000000000000000000000000000000000000000000000000000";
+	path := "052c000080760000800000008000000000000000000000000000000000000000000000000000000000"
 	pathBytes, err := hex.DecodeString(path)
 	if err != nil {
 		t.Fatalf("invalid path in test")
 	}
 
-	header := []byte { 0x55, 1, 0, 0, byte(len(pathBytes))}
+	header := []byte{0x55, 1, 0, 0, byte(len(pathBytes))}
 	message := append(header, pathBytes...)
 
 	response, err := ledger.Exchange(message)
 
 	if err != nil {
-		t.Fatalf( "Error: %s", err.Error())
+		t.Fatalf("Error: %s", err.Error())
 	}
 
 	assert.Equal(t, 65, len(response))

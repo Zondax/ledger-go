@@ -19,8 +19,9 @@ package ledger_go
 import (
 	"errors"
 	"fmt"
-	"github.com/zondax/hid"
 	"sync"
+
+	"github.com/zondax/hid"
 )
 
 const (
@@ -34,7 +35,7 @@ const (
 type Ledger struct {
 	device      hid.Device
 	readCo      sync.Once
-	readChannel chan [] byte
+	readChannel chan []byte
 	Logging     bool
 }
 
@@ -148,7 +149,7 @@ func (ledger *Ledger) Read() <-chan []byte {
 	return ledger.readChannel
 }
 
-func (ledger *Ledger) initReadChannel(){
+func (ledger *Ledger) initReadChannel() {
 	ledger.readChannel = make(chan []byte, 30)
 	go ledger.readThread()
 }
