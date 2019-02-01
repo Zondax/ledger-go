@@ -19,8 +19,9 @@ package ledger_go
 import (
 	"errors"
 	"fmt"
-	"github.com/zondax/hid"
 	"sync"
+
+	"github.com/zondax/hid"
 )
 
 const (
@@ -34,7 +35,7 @@ const (
 type Ledger struct {
 	device      hid.Device
 	readCo      sync.Once
-	readChannel chan [] byte
+	readChannel chan []byte
 	Logging     bool
 }
 
@@ -70,23 +71,17 @@ func FindLedger() (*Ledger, error) {
 	devices := hid.Enumerate(VendorLedger, 0)
 
 	for _, d := range devices {
-		if d.VendorID == VendorLedger && d.UsagePage == UsagePageLedger {
-			device, err := d.Open()
-			if err != nil {
-				return nil, err
-			}
-			return NewLedger(device), nil
-		}
+		deviceFound := d.UsagePage == UsagePageLedger
+		deviceFound = deviceFound || (d.Product == "Nano S" && d.Interface == 0)
 
-		// Linux discovery
-		if d.VendorID == VendorLedger && d.Product == "Nano S" && d.Interface == 0 {
+		if deviceFound {
 			device, err := d.Open()
-			if err != nil {
-				return nil, err
+			if err == nil {
+				return NewLedger(device), nil
 			}
-			return NewLedger(device), nil
 		}
 	}
+
 	return nil, errors.New("no ledger connected")
 }
 
@@ -126,6 +121,10 @@ func ErrorMessage(errorCode uint16) string {
 	}
 }
 
+func (ledger *Ledger) Close() error {
+	return ledger.device.Close()
+}
+
 func (ledger *Ledger) Write(buffer []byte) (int, error) {
 	totalBytes := len(buffer)
 	totalWrittenBytes := 0
@@ -150,7 +149,7 @@ func (ledger *Ledger) Read() <-chan []byte {
 	return ledger.readChannel
 }
 
-func (ledger *Ledger) initReadChannel(){
+func (ledger *Ledger) initReadChannel() {
 	ledger.readChannel = make(chan []byte, 30)
 	go ledger.readThread()
 }

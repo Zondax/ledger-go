@@ -126,7 +126,7 @@ func WrapCommandAPDU(
 }
 
 // UnwrapResponseAPDU parses a response of 64 byte packets into the real data
-func UnwrapResponseAPDU(channel uint16, pipe <- chan []byte, packetSize int) ([]byte, error) {
+func UnwrapResponseAPDU(channel uint16, pipe <-chan []byte, packetSize int) ([]byte, error) {
 	var sequenceIdx uint16
 
 	var totalResult []byte
@@ -135,7 +135,7 @@ func UnwrapResponseAPDU(channel uint16, pipe <- chan []byte, packetSize int) ([]
 
 	for !done {
 		// Read next packet from the channel
-		buffer := <- pipe
+		buffer := <-pipe
 
 		result, responseSize, err := DeserializePacket(channel, buffer, sequenceIdx)
 		if err != nil {
