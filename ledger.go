@@ -214,7 +214,7 @@ func (ledger *Ledger) Exchange(command []byte) ([]byte, error) {
 		fmt.Printf("Response: [%3d]<= %x [%#x]\n", len(response[:swOffset]), response[:swOffset], sw)
 	}
 	if sw != 0x9000 {
-		return nil, errors.New(ErrorMessage(sw))
+		return response[:swOffset], errors.New(ErrorMessage(sw))
 	}
 
 	return response[:swOffset], nil
