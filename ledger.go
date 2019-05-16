@@ -25,8 +25,8 @@ import (
 )
 
 const (
-	VendorLedger    = 0x2c97
-	UsagePageLedger = 0xffa0
+	VendorLedger         = 0x2c97
+	UsagePageLedgerNanoS = 0xffa0
 	//ProductNano     = 1
 	Channel    = 0x0101
 	PacketSize = 64
@@ -71,8 +71,11 @@ func FindLedger() (*Ledger, error) {
 	devices := hid.Enumerate(VendorLedger, 0)
 
 	for _, d := range devices {
-		deviceFound := d.UsagePage == UsagePageLedger
-		deviceFound = deviceFound || (d.Product == "Nano S" && d.Interface == 0)
+		deviceFound := d.UsagePage == UsagePageLedgerNanoS
+		// Workarounds for possible empty usage pages
+		deviceFound = deviceFound ||
+			(d.Product == "Nano S" && d.Interface == 0) ||
+			(d.Product == "Nano X" && d.Interface == 0)
 
 		if deviceFound {
 			device, err := d.Open()
