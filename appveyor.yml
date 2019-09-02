@@ -6,7 +6,7 @@ branches:
   only:
     - master
 
-clone_folder: c:\gopath\src\github.com\zondax\ledger-go
+clone_folder: c:\gopath\src\github.com\zondax\ledger-goclient
 
 environment:
   GOPATH: c:\gopath
