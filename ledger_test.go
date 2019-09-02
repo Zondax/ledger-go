@@ -21,9 +21,10 @@ package ledger_go
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/stretchr/testify/assert"
-	"github.com/karalabe/usb"
 	"testing"
+
+	"github.com/karalabe/usb"
+	"github.com/stretchr/testify/assert"
 )
 
 func Test_ThereAreDevices(t *testing.T) {
