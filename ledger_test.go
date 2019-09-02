@@ -22,12 +22,13 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/stretchr/testify/assert"
-	"github.com/zondax/hid"
+	"github.com/karalabe/usb"
 	"testing"
 )
 
 func Test_ThereAreDevices(t *testing.T) {
-	devices := hid.Enumerate(0, 0)
+	devices, err := usb.Enumerate(0, 0)
+	assert.Nil(t, err, "err should be nil")
 	assert.NotEqual(t, 0, len(devices))
 }
 

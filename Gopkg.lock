@@ -10,6 +10,14 @@
   version = "v1.1.1"
 
 [[projects]]
+  branch = "master"
+  digest = "1:49ff9e9cebe124fdd184f38369412fa0199669cf0626a79cc9e0cc26848c2824"
+  name = "github.com/karalabe/usb"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "550797b1cad8e44177d2acda8687d4f0ca8501e1"
+
+[[projects]]
   digest = "1:cf31692c14422fa27c83a05292eb5cbe0fb2775972e8f1f8446a71549bd8980b"
   name = "github.com/pkg/errors"
   packages = ["."]
@@ -26,28 +34,28 @@
   version = "v1.0.0"
 
 [[projects]]
-  digest = "1:972c2427413d41a1e06ca4897e8528e5a1622894050e2f527b38ddf0f343f759"
+  digest = "1:8548c309c65a85933a625be5e7d52b6ac927ca30c56869fae58123b8a77a75e1"
   name = "github.com/stretchr/testify"
   packages = ["assert"]
   pruneopts = "UT"
-  revision = "ffdc059bfe9ce6a4e144ba849dbedead332c6053"
-  version = "v1.3.0"
+  revision = "221dbe5ed46703ee255b1da0dec05086f5035f62"
+  version = "v1.4.0"
 
 [[projects]]
-  digest = "1:b73f5e117bc7c6e8fc47128f20db48a873324ad5cfeeebfc505e85c58682b5e4"
-  name = "github.com/zondax/hid"
+  digest = "1:4d2e5a73dc1500038e504a8d78b986630e3626dc027bc030ba5c75da257cdb96"
+  name = "gopkg.in/yaml.v2"
   packages = ["."]
-  pruneopts = "T"
-  revision = "302fd402163c34626286195dfa9adac758334acc"
-  version = "v0.9.0"
+  pruneopts = "UT"
+  revision = "51d6538a90f86fe93ac480b35f37b2be17fef232"
+  version = "v2.2.2"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "github.com/karalabe/usb",
     "github.com/pkg/errors",
     "github.com/stretchr/testify/assert",
-    "github.com/zondax/hid",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1

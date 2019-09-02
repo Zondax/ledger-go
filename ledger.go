@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/zondax/hid"
+	"github.com/karalabe/usb"
 )
 
 const (
@@ -33,13 +33,13 @@ const (
 )
 
 type Ledger struct {
-	device      hid.Device
+	device      usb.Device
 	readCo      sync.Once
 	readChannel chan []byte
 	Logging     bool
 }
 
-func NewLedger(dev *hid.Device) *Ledger {
+func NewLedger(dev *usb.Device) *Ledger {
 	return &Ledger{
 		device:  *dev,
 		Logging: false,
@@ -47,7 +47,11 @@ func NewLedger(dev *hid.Device) *Ledger {
 }
 
 func ListDevices() {
-	devices := hid.Enumerate(0, 0)
+	devices, err := usb.Enumerate(0, 0)
+	if err!= nil {
+		fmt.Printf("enumerate devices error, err=%s", err.Error())
+		return
+	}
 
 	if len(devices) == 0 {
 		fmt.Printf("No devices")
@@ -68,7 +72,10 @@ func ListDevices() {
 }
 
 func FindLedger() (*Ledger, error) {
-	devices := hid.Enumerate(VendorLedger, 0)
+	devices, err := usb.Enumerate(VendorLedger, 0)
+	if err != nil {
+		return nil, err
+	}
 
 	for _, d := range devices {
 		deviceFound := d.UsagePage == UsagePageLedger
@@ -77,7 +84,7 @@ func FindLedger() (*Ledger, error) {
 		if deviceFound {
 			device, err := d.Open()
 			if err == nil {
-				return NewLedger(device), nil
+				return NewLedger(&device), nil
 			}
 		}
 	}
