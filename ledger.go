@@ -67,7 +67,7 @@ func ListDevices() {
 	}
 }
 
-func isLedgerDevice(device hid.DeviceInfo) bool {
+func isLedgerDevice(d hid.DeviceInfo) bool {
 	deviceFound := d.UsagePage == UsagePageLedgerNanoS
 	// Workarounds for possible empty usage pages
 	return deviceFound ||
