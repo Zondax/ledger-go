@@ -67,17 +67,39 @@ func ListDevices() {
 	}
 }
 
+func isLedgerDevice(device hid.DeviceInfo) bool {
+	deviceFound := d.UsagePage == UsagePageLedgerNanoS
+	// Workarounds for possible empty usage pages
+	return deviceFound ||
+		(d.Product == "Nano S" && d.Interface == 0) ||
+		(d.Product == "Nano X" && d.Interface == 0)
+}
+
+func FindLedgerDevices() ([]hid.DeviceInfo, error) {
+	devices := hid.Enumerate(0, 0)
+	var ledgerDevices []hid.DeviceInfo
+
+	if len(devices) == 0 {
+		return nil, fmt.Errorf("no devices")
+	}
+
+	for _, d := range devices {
+		if isLedgerDevice(d) {
+			ledgerDevices = append(ledgerDevices, d)
+		}
+	}
+
+	if len(ledgerDevices) == 0 {
+		return nil, fmt.Errorf("no devices found")
+	}
+	return ledgerDevices, nil
+}
+
 func FindLedger() (*Ledger, error) {
 	devices := hid.Enumerate(VendorLedger, 0)
 
 	for _, d := range devices {
-		deviceFound := d.UsagePage == UsagePageLedgerNanoS
-		// Workarounds for possible empty usage pages
-		deviceFound = deviceFound ||
-			(d.Product == "Nano S" && d.Interface == 0) ||
-			(d.Product == "Nano X" && d.Interface == 0)
-
-		if deviceFound {
+		if isLedgerDevice(d) {
 			device, err := d.Open()
 			if err == nil {
 				return NewLedger(device), nil
