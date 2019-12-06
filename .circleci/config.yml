@@ -8,7 +8,7 @@ jobs:
     working_directory: /ledger-go
     steps:
       - checkout
-      - run: go build ledger.go apduWrapper.go
+      - run: go build -mod=readonly ledger.go apduWrapper.go
       - run: go test
 workflows:
   version: 2
