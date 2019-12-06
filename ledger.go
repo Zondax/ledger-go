@@ -39,7 +39,7 @@ type Ledger struct {
 	Logging     bool
 }
 
-func NewLedger(dev *hid.Device) *Ledger {
+func newLedger(dev *hid.Device) *Ledger {
 	return &Ledger{
 		device:  *dev,
 		Logging: false,
@@ -67,25 +67,52 @@ func ListDevices() {
 	}
 }
 
+func isLedgerDevice(d hid.DeviceInfo) bool {
+	deviceFound := d.UsagePage == UsagePageLedgerNanoS
+	// Workarounds for possible empty usage pages
+	return deviceFound ||
+		(d.Product == "Nano S" && d.Interface == 0) ||
+		(d.Product == "Nano X" && d.Interface == 0)
+}
+
+func CountLedgerDevices() uint {
+	devices := hid.Enumerate(0, 0)
+
+	count := uint(0)
+	for _, d := range devices {
+		if isLedgerDevice(d) {
+			count++
+		}
+	}
+
+	return count
+}
+
 func FindLedger() (*Ledger, error) {
+	return GetLedger(0)
+}
+
+func GetLedger(requiredIndex uint) (*Ledger, error) {
 	devices := hid.Enumerate(VendorLedger, 0)
 
+	currentIndex := uint(0)
 	for _, d := range devices {
-		deviceFound := d.UsagePage == UsagePageLedgerNanoS
-		// Workarounds for possible empty usage pages
-		deviceFound = deviceFound ||
-			(d.Product == "Nano S" && d.Interface == 0) ||
-			(d.Product == "Nano X" && d.Interface == 0)
-
-		if deviceFound {
-			device, err := d.Open()
-			if err == nil {
-				return NewLedger(device), nil
+		if isLedgerDevice(d) {
+			if currentIndex == requiredIndex {
+				device, err := d.Open()
+				if err != nil {
+					return nil, err
+				}
+				return newLedger(device), nil
+			}
+			currentIndex++
+			if currentIndex > requiredIndex {
+				break
 			}
 		}
 	}
 
-	return nil, errors.New("no ledger connected")
+	return nil, fmt.Errorf("Ledger device (idx %d) not found", requiredIndex)
 }
 
 func ErrorMessage(errorCode uint16) string {

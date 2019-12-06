@@ -8,7 +8,7 @@ It handles USB (HID) communication and APDU encapsulation.
 
 Linux, OSX and Windows are supported.
 
-# Building
-```
+## Building
+```bash
 go build
 ```
