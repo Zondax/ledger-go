@@ -2,12 +2,12 @@ version: 2
 jobs:
   build:
     docker:
-      - image: golang:1.10
-    working_directory: /go/src/zondax/ledger-goclient
+      - image: golang:1.13
+    environment:
+      GO111MODULE: "on"
+    working_directory: /ledger-go
     steps:
       - checkout
-      - run: go get -v -u github.com/golang/dep/cmd/dep
-      - run: dep ensure -v
       - run: go build ledger.go apduWrapper.go
       - run: go test
 workflows:
