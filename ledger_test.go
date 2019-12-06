@@ -19,24 +19,62 @@
 package ledger_go
 
 import (
-	"encoding/hex"
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/zondax/hid"
+	"sync"
 	"testing"
 )
 
+var mux sync.Mutex
+
 func Test_ThereAreDevices(t *testing.T) {
+	mux.Lock()
+	defer mux.Unlock()
+
 	devices := hid.Enumerate(0, 0)
 	assert.NotEqual(t, 0, len(devices))
 }
 
 func Test_ListDevices(t *testing.T) {
+	mux.Lock()
+	defer mux.Unlock()
+
 	ListDevices()
 }
 
+func Test_CountLedgerDevices(t *testing.T) {
+	mux.Lock()
+	defer mux.Unlock()
+
+	count := CountLedgerDevices()
+	println(count)
+	assert.True(t, count > 0)
+}
+
 func Test_FindLedger(t *testing.T) {
+	mux.Lock()
+	defer mux.Unlock()
+
 	ledger, err := FindLedger()
+	defer ledger.Close()
+
+	if err != nil {
+		fmt.Println("\n*********************************")
+		fmt.Println("Did you enter the password??")
+		fmt.Println("*********************************")
+		t.Fatalf("Error: %s", err.Error())
+	}
+	assert.NotNil(t, ledger)
+}
+
+func Test_GetLedger(t *testing.T) {
+	mux.Lock()
+	defer mux.Unlock()
+
+	ledger, err := GetLedger(1)
+	defer ledger.Close()
+
 	if err != nil {
 		fmt.Println("\n*********************************")
 		fmt.Println("Did you enter the password??")
@@ -47,7 +85,12 @@ func Test_FindLedger(t *testing.T) {
 }
 
 func Test_BasicExchange(t *testing.T) {
+	mux.Lock()
+	defer mux.Unlock()
+
 	ledger, err := FindLedger()
+	defer ledger.Close()
+
 	if err != nil {
 		fmt.Println("\n*********************************")
 		fmt.Println("Did you enter the password??")
@@ -56,7 +99,8 @@ func Test_BasicExchange(t *testing.T) {
 	}
 	assert.NotNil(t, ledger)
 
-	message := []byte{0x55, 0, 0, 0, 0}
+	// Call app info (this should work in main menu and many apps)
+	message := []byte{0xB0, 0x01, 0, 0, 0}
 
 	for i := 0; i < 10; i++ {
 		response, err := ledger.Exchange(message)
@@ -66,34 +110,6 @@ func Test_BasicExchange(t *testing.T) {
 			t.Fatalf("Error: %s", err.Error())
 		}
 
-		assert.Equal(t, 5, len(response))
+		assert.Equal(t, 15, len(response))
 	}
-}
-
-func Test_LongExchange(t *testing.T) {
-	ledger, err := FindLedger()
-	if err != nil {
-		fmt.Println("\n*********************************")
-		fmt.Println("Did you enter the password??")
-		fmt.Println("*********************************")
-		t.Fatalf("Error: %s", err.Error())
-	}
-	assert.NotNil(t, ledger)
-
-	path := "052c000080760000800000008000000000000000000000000000000000000000000000000000000000"
-	pathBytes, err := hex.DecodeString(path)
-	if err != nil {
-		t.Fatalf("invalid path in test")
-	}
-
-	header := []byte{0x55, 1, 0, 0, byte(len(pathBytes))}
-	message := append(header, pathBytes...)
-
-	response, err := ledger.Exchange(message)
-
-	if err != nil {
-		t.Fatalf("Error: %s", err.Error())
-	}
-
-	assert.Equal(t, 65, len(response))
 }
