@@ -19,10 +19,11 @@ package ledger_go
 import (
 	"bytes"
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"math"
 	"testing"
 	"unsafe"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func Test_SerializePacket_EmptyCommand(t *testing.T) {
@@ -195,27 +196,27 @@ func Test_WrapCommandAPDU_CheckData(t *testing.T) {
 		packetSize)
 
 	// Check data in the first packet
-	assert.True(t, bytes.Compare(command[0:64-7], result[7:64]) == 0)
+	assert.True(t, bytes.Equal(command[0:64-7], result[7:64]))
 
 	result = result[64:]
 	command = command[64-7:]
 	// Check data in the second packet
-	assert.True(t, bytes.Compare(command[0:64-5], result[5:64]) == 0)
+	assert.True(t, bytes.Equal(command[0:64-5], result[5:64]))
 
 	result = result[64:]
 	command = command[64-5:]
 	// Check data in the third packet
-	assert.True(t, bytes.Compare(command[0:64-5], result[5:64]) == 0)
+	assert.True(t, bytes.Equal(command[0:64-5], result[5:64]))
 
 	result = result[64:]
 	command = command[64-5:]
 
 	// Check data in the last packet
-	assert.True(t, bytes.Compare(command[0:], result[5:5+len(command)]) == 0)
+	assert.True(t, bytes.Equal(command[0:], result[5:5+len(command)]))
 
 	// The remaining bytes in the result should be zeros
 	result = result[5+len(command):]
-	assert.True(t, bytes.Compare(result, make([]byte, len(result))) == 0)
+	assert.True(t, bytes.Equal(result, make([]byte, len(result))))
 }
 
 func Test_DeserializePacket_FirstPacket(t *testing.T) {
@@ -246,7 +247,7 @@ func Test_DeserializePacket_SecondMessage(t *testing.T) {
 	assert.Nil(t, err, "Simple deserialize should not have errors")
 	assert.Equal(t, 0, int(totalSize), "TotalSize should not be returned from deserialization of non-first packet")
 	assert.Equal(t, packetSize-firstPacketHeaderSize, len(output), "Size of the deserialized packet is wrong")
-	assert.True(t, bytes.Compare(output[:len(sampleCommand)], sampleCommand) == 0, "Deserialized message does not match the original")
+	assert.True(t, bytes.Equal(output[:len(sampleCommand)], sampleCommand), "Deserialized message does not match the original")
 }
 
 func Test_UnwrapApdu_SmokeTest(t *testing.T) {
@@ -279,6 +280,6 @@ func Test_UnwrapApdu_SmokeTest(t *testing.T) {
 
 	assert.Equal(t, len(input), len(output), "Input and output messages have different size")
 	assert.True(t,
-		bytes.Compare(input, output) == 0,
+		bytes.Equal(input, output),
 		"Input message does not match message which was serialized and then deserialized")
 }
