@@ -232,6 +232,9 @@ func (ledger *Ledger) Exchange(command []byte) ([]byte, error) {
 	readChannel := ledger.Read()
 
 	response, err := UnwrapResponseAPDU(Channel, readChannel, PacketSize)
+	if err != nil {
+		return nil, err
+	}
 
 	if len(response) < 2 {
 		return nil, fmt.Errorf("len(response) < 2")
