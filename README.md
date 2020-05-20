@@ -1,6 +1,6 @@
 # ledger-go
 
-[![CircleCI](https://circleci.com/gh/ZondaX/ledger-go.svg?style=shield)](https://circleci.com/gh/ZondaX/ledger-go)
+[![CircleCI](https://circleci.com/gh/Zondax/ledger-go.svg?style=shield)](https://circleci.com/gh/ZondaX/ledger-go)
 
 This project provides a library to connect to ledger devices. 
 
