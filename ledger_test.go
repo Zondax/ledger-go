@@ -1,5 +1,3 @@
-// +build ledger_device
-
 /*******************************************************************************
 *   (c) 2018 ZondaX GmbH
 *
@@ -21,66 +19,42 @@ package ledger_go
 import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
-	"github.com/zondax/hid"
+	"github.com/stretchr/testify/require"
 	"sync"
 	"testing"
 )
 
 var mux sync.Mutex
 
-func Test_ThereAreDevices(t *testing.T) {
+func Test_CountLedgerDevices(t *testing.T) {
 	mux.Lock()
 	defer mux.Unlock()
 
-	devices := hid.Enumerate(0, 0)
-	assert.NotEqual(t, 0, len(devices))
+	ledgerAdmin := NewLedgerAdmin();
+	count := ledgerAdmin.CountDevices()
+	assert.True(t, count > 0)
 }
 
 func Test_ListDevices(t *testing.T) {
 	mux.Lock()
 	defer mux.Unlock()
 
-	ListDevices()
-}
-
-func Test_CountLedgerDevices(t *testing.T) {
-	mux.Lock()
-	defer mux.Unlock()
-
-	count := CountLedgerDevices()
-	println(count)
-	assert.True(t, count > 0)
-}
-
-func Test_FindLedger(t *testing.T) {
-	mux.Lock()
-	defer mux.Unlock()
-
-	ledger, err := FindLedger()
-	defer ledger.Close()
-
-	if err != nil {
-		fmt.Println("\n*********************************")
-		fmt.Println("Did you enter the password??")
-		fmt.Println("*********************************")
-		t.Fatalf("Error: %s", err.Error())
-	}
-	assert.NotNil(t, ledger)
+	ledgerAdmin := NewLedgerAdmin();
+	ledgerAdmin.ListDevices()
 }
 
 func Test_GetLedger(t *testing.T) {
 	mux.Lock()
 	defer mux.Unlock()
 
-	ledger, err := GetLedger(1)
+	ledgerAdmin := NewLedgerAdmin();
+	count := ledgerAdmin.CountDevices()
+	require.True(t, count > 0)
+
+	ledger, err := ledgerAdmin.Connect(0);
 	defer ledger.Close()
 
-	if err != nil {
-		fmt.Println("\n*********************************")
-		fmt.Println("Did you enter the password??")
-		fmt.Println("*********************************")
-		t.Fatalf("Error: %s", err.Error())
-	}
+	assert.NoError(t, err)
 	assert.NotNil(t, ledger)
 }
 
@@ -88,19 +62,18 @@ func Test_BasicExchange(t *testing.T) {
 	mux.Lock()
 	defer mux.Unlock()
 
-	ledger, err := FindLedger()
+	ledgerAdmin := NewLedgerAdmin();
+	count := ledgerAdmin.CountDevices()
+	require.True(t, count > 0)
+
+	ledger, err := ledgerAdmin.Connect(0);
 	defer ledger.Close()
 
-	if err != nil {
-		fmt.Println("\n*********************************")
-		fmt.Println("Did you enter the password??")
-		fmt.Println("*********************************")
-		t.Fatalf("Error: %s", err.Error())
-	}
+	assert.NoError(t, err)
 	assert.NotNil(t, ledger)
 
-	// Call app info (this should work in main menu and many apps)
-	message := []byte{0xB0, 0x01, 0, 0, 0}
+	// Call device info (this should work in main menu and many apps)
+	message := []byte{0xE0, 0x01, 0, 0, 0}
 
 	for i := 0; i < 10; i++ {
 		response, err := ledger.Exchange(message)
@@ -110,6 +83,6 @@ func Test_BasicExchange(t *testing.T) {
 			t.Fatalf("Error: %s", err.Error())
 		}
 
-		assert.Equal(t, 15, len(response))
+		require.True(t, len(response) > 0)
 	}
 }

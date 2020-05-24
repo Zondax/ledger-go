@@ -4,7 +4,7 @@
 
 This project provides a library to connect to ledger devices. 
 
-It handles USB (HID) communication and APDU encapsulation.
+It handles APDU encapsulation, Zemu and USB (HID) communication.
 
 Linux, OSX and Windows are supported.
 
