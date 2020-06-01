@@ -18,16 +18,26 @@
 
 package ledger_go
 
+import (
+	"context"
+	"fmt"
+	"google.golang.org/grpc"
+)
+
 type LedgerAdminZemu struct {
-	// TODO: Add url, etc.
+	grpcURL  	string
+	grpcPort 	string
 }
 
 type LedgerDeviceZemu struct {
+	connection 	*grpc.ClientConn
+	client		ZemuCommandClient
 }
 
-func NewLedgerAdmin( /*pass grpc url, maybe hardcode?, etc.*/) *LedgerAdminZemu {
+func NewLedgerAdmin() *LedgerAdminZemu {
 	return &LedgerAdminZemu{
-		// TODO: Add url, etc.
+		grpcURL: "localhost", //TODO get this from flag value
+		grpcPort: "3002", //TODO get this from flag value
 	}
 }
 
@@ -43,16 +53,39 @@ func (admin *LedgerAdminZemu) CountDevices() int {
 }
 
 func (admin *LedgerAdminZemu) Connect(deviceIndex int) (*LedgerDeviceZemu, error) {
-	// TODO: Confirm GRPC could connect
-	return &LedgerDeviceZemu{}, nil
+	serverAddr := admin.grpcURL +  ":" + admin.grpcPort
+	//TODO: check Dial flags
+	conn, err := grpc.Dial(serverAddr, grpc.WithInsecure())
+
+	if err != nil {
+		err = fmt.Errorf("could not connect to rpc server at %q : %q", serverAddr, err)
+		return &LedgerDeviceZemu{}, err
+	}
+
+	client := NewZemuCommandClient(conn)
+
+	return &LedgerDeviceZemu{connection: conn, client: client}, nil
 }
 
 func (ledger *LedgerDeviceZemu) Exchange(command []byte) ([]byte, error) {
 	// Send to Zemu and return reply or error
-	return []byte{}, nil
+	r, err := ledger.client.Exchange(context.Background(), &ExchangeRequest{Command: command})
+
+	if err != nil {
+		err = fmt.Errorf("could not call rpc service: %q", err)
+		return []byte{}, err
+	}
+
+	return r.Reply, nil
 }
 
 func (ledger *LedgerDeviceZemu) Close() error {
-	// TODO: Any clean update that we may need to do here
+	err := ledger.connection.Close()
+
+	if err != nil {
+		err = fmt.Errorf("could not close connection to rpc server")
+		return err
+	}
+
 	return nil
 }
