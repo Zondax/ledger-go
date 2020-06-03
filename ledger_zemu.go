@@ -68,6 +68,15 @@ func (admin *LedgerAdminZemu) Connect(deviceIndex int) (*LedgerDeviceZemu, error
 }
 
 func (ledger *LedgerDeviceZemu) Exchange(command []byte) ([]byte, error) {
+
+	if len(command) < 5 {
+		return nil, fmt.Errorf("APDU commands should not be smaller than 5")
+	}
+
+	if (byte)(len(command)-5) != command[4] {
+		return nil, fmt.Errorf("APDU[data length] mismatch")
+	}
+
 	// Send to Zemu and return reply or error
 	r, err := ledger.client.Exchange(context.Background(), &ExchangeRequest{Command: command})
 
@@ -76,7 +85,20 @@ func (ledger *LedgerDeviceZemu) Exchange(command []byte) ([]byte, error) {
 		return []byte{}, err
 	}
 
-	return r.Reply, nil
+	response := r.Reply
+
+	if len(response) < 2 {
+		return nil, fmt.Errorf("len(response) < 2")
+	}
+
+	swOffset := len(response) - 2
+	sw := codec.Uint16(response[swOffset:])
+
+	if sw != 0x9000 {
+		return response[:swOffset], fmt.Errorf("return code with error")
+	}
+
+	return response[:swOffset], nil
 }
 
 func (ledger *LedgerDeviceZemu) Close() error {
