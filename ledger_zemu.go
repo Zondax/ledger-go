@@ -36,8 +36,9 @@ type LedgerDeviceZemu struct {
 
 func NewLedgerAdmin() *LedgerAdminZemu {
 	return &LedgerAdminZemu{
-		grpcURL: "localhost", //TODO get this from flag value
-		grpcPort: "3002", //TODO get this from flag value
+		//TODO get this from flag value or from Zemu response
+		grpcURL: "localhost",
+		grpcPort: "3002",
 	}
 }
 
