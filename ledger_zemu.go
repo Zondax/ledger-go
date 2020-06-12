@@ -18,16 +18,27 @@
 
 package ledger_go
 
+import (
+	"context"
+	"fmt"
+	"google.golang.org/grpc"
+)
+
 type LedgerAdminZemu struct {
-	// TODO: Add url, etc.
+	grpcURL  	string
+	grpcPort 	string
 }
 
 type LedgerDeviceZemu struct {
+	connection 	*grpc.ClientConn
+	client		ZemuCommandClient
 }
 
-func NewLedgerAdmin( /*pass grpc url, maybe hardcode?, etc.*/) *LedgerAdminZemu {
+func NewLedgerAdmin() *LedgerAdminZemu {
 	return &LedgerAdminZemu{
-		// TODO: Add url, etc.
+		//TODO get this from flag value or from Zemu response
+		grpcURL: "localhost",
+		grpcPort: "3002",
 	}
 }
 
@@ -43,16 +54,61 @@ func (admin *LedgerAdminZemu) CountDevices() int {
 }
 
 func (admin *LedgerAdminZemu) Connect(deviceIndex int) (*LedgerDeviceZemu, error) {
-	// TODO: Confirm GRPC could connect
-	return &LedgerDeviceZemu{}, nil
+	serverAddr := admin.grpcURL +  ":" + admin.grpcPort
+	//TODO: check Dial flags
+	conn, err := grpc.Dial(serverAddr, grpc.WithInsecure())
+
+	if err != nil {
+		err = fmt.Errorf("could not connect to rpc server at %q : %q", serverAddr, err)
+		return &LedgerDeviceZemu{}, err
+	}
+
+	client := NewZemuCommandClient(conn)
+
+	return &LedgerDeviceZemu{connection: conn, client: client}, nil
 }
 
 func (ledger *LedgerDeviceZemu) Exchange(command []byte) ([]byte, error) {
+
+	if len(command) < 5 {
+		return nil, fmt.Errorf("APDU commands should not be smaller than 5")
+	}
+
+	if (byte)(len(command)-5) != command[4] {
+		return nil, fmt.Errorf("APDU[data length] mismatch")
+	}
+
 	// Send to Zemu and return reply or error
-	return []byte{}, nil
+	r, err := ledger.client.Exchange(context.Background(), &ExchangeRequest{Command: command})
+
+	if err != nil {
+		err = fmt.Errorf("could not call rpc service: %q", err)
+		return []byte{}, err
+	}
+
+	response := r.Reply
+
+	if len(response) < 2 {
+		return nil, fmt.Errorf("len(response) < 2")
+	}
+
+	swOffset := len(response) - 2
+	sw := codec.Uint16(response[swOffset:])
+
+	if sw != 0x9000 {
+		return response[:swOffset], fmt.Errorf("return code with error")
+	}
+
+	return response[:swOffset], nil
 }
 
 func (ledger *LedgerDeviceZemu) Close() error {
-	// TODO: Any clean update that we may need to do here
+	err := ledger.connection.Close()
+
+	if err != nil {
+		err = fmt.Errorf("could not close connection to rpc server")
+		return err
+	}
+
 	return nil
 }
