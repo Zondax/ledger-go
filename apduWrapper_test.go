@@ -18,7 +18,6 @@ package ledger_go
 
 import (
 	"bytes"
-	"fmt"
 	"math"
 	"testing"
 	"unsafe"
@@ -35,7 +34,7 @@ func Test_SerializePacket_EmptyCommand(t *testing.T) {
 
 func Test_SerializePacket_PacketSize(t *testing.T) {
 
-	var packetSize int = 64
+	var packetSize = 64
 	type header struct {
 		channel     uint16
 		tag         uint8
@@ -58,7 +57,7 @@ func Test_SerializePacket_PacketSize(t *testing.T) {
 
 func Test_SerializePacket_Header(t *testing.T) {
 
-	var packetSize int = 64
+	var packetSize = 64
 	type header struct {
 		channel     uint16
 		tag         uint8
@@ -84,7 +83,7 @@ func Test_SerializePacket_Header(t *testing.T) {
 
 func Test_SerializePacket_Offset(t *testing.T) {
 
-	var packetSize int = 64
+	var packetSize = 64
 	type header struct {
 		channel     uint16
 		tag         uint8
@@ -102,21 +101,16 @@ func Test_SerializePacket_Offset(t *testing.T) {
 		packetSize,
 		h.sequenceIdx)
 
-	assert.Equal(t, packetSize-int(unsafe.Sizeof(h))+1, offset, "Wrong offset returned. Offset must point to the next comamnd byte that needs to be packet-ized.")
+	assert.Equal(t, packetSize-int(unsafe.Sizeof(h))+1, offset, "Wrong offset returned. Offset must point to the next command byte that needs to be packetized.")
 }
 
 func Test_WrapCommandAPDU_NumberOfPackets(t *testing.T) {
 
-	var packetSize int = 64
+	var packetSize = 64
 	type firstHeader struct {
 		channel     uint16
 		sequenceIdx uint16
 		commandLen  uint16
-		tag         uint8
-	}
-	type secondHeader struct {
-		channel     uint16
-		sequenceIdx uint16
 		tag         uint8
 	}
 
@@ -134,16 +128,11 @@ func Test_WrapCommandAPDU_NumberOfPackets(t *testing.T) {
 
 func Test_WrapCommandAPDU_CheckHeaders(t *testing.T) {
 
-	var packetSize int = 64
+	var packetSize = 64
 	type firstHeader struct {
 		channel     uint16
 		sequenceIdx uint16
 		commandLen  uint16
-		tag         uint8
-	}
-	type secondHeader struct {
-		channel     uint16
-		sequenceIdx uint16
 		tag         uint8
 	}
 
@@ -169,16 +158,11 @@ func Test_WrapCommandAPDU_CheckHeaders(t *testing.T) {
 
 func Test_WrapCommandAPDU_CheckData(t *testing.T) {
 
-	var packetSize int = 64
+	var packetSize = 64
 	type firstHeader struct {
 		channel     uint16
 		sequenceIdx uint16
 		commandLen  uint16
-		tag         uint8
-	}
-	type secondHeader struct {
-		channel     uint16
-		sequenceIdx uint16
 		tag         uint8
 	}
 
@@ -223,8 +207,8 @@ func Test_DeserializePacket_FirstPacket(t *testing.T) {
 
 	var sampleCommand = []byte{'H', 'e', 'l', 'l', 'o', 0}
 
-	var packetSize int = 64
-	var firstPacketHeaderSize int = 7
+	var packetSize = 64
+	var firstPacketHeaderSize = 7
 	packet, _, _ := SerializePacket(0x0101, sampleCommand, packetSize, 0)
 
 	output, totalSize, err := DeserializePacket(0x0101, packet, 0)
@@ -238,8 +222,8 @@ func Test_DeserializePacket_FirstPacket(t *testing.T) {
 func Test_DeserializePacket_SecondMessage(t *testing.T) {
 	var sampleCommand = []byte{'H', 'e', 'l', 'l', 'o', 0}
 
-	var packetSize int = 64
-	var firstPacketHeaderSize int = 5 // second packet does not have responseLegth (uint16) in the header
+	var packetSize = 64
+	var firstPacketHeaderSize = 5 // second packet does not have responseLength (uint16) in the header
 	packet, _, _ := SerializePacket(0x0101, sampleCommand, packetSize, 1)
 
 	output, totalSize, err := DeserializePacket(0x0101, packet, 1)
@@ -254,7 +238,7 @@ func Test_UnwrapApdu_SmokeTest(t *testing.T) {
 	const channel uint16 = 0x8002
 
 	inputSize := 200
-	var packetSize int = 64
+	var packetSize = 64
 
 	// Initialize some dummy input
 	var input = make([]byte, inputSize)
@@ -274,9 +258,9 @@ func Test_UnwrapApdu_SmokeTest(t *testing.T) {
 
 	output, _ := UnwrapResponseAPDU(channel, pipe, packetSize)
 
-	fmt.Printf("INPUT     : %x\n", input)
-	fmt.Printf("SERIALIZED: %x\n", serialized)
-	fmt.Printf("OUTPUT    : %x\n", output)
+	//fmt.Printf("INPUT     : %x\n", input)
+	//fmt.Printf("SERIALIZED: %x\n", serialized)
+	//fmt.Printf("OUTPUT    : %x\n", output)
 
 	assert.Equal(t, len(input), len(output), "Input and output messages have different size")
 	assert.True(t,
