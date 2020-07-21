@@ -39,7 +39,7 @@ func Test_ListDevices(t *testing.T) {
 	mux.Lock()
 	defer mux.Unlock()
 
-	ledgerAdmin := NewLedgerAdmin();
+	ledgerAdmin := NewLedgerAdmin()
 	ledgerAdmin.ListDevices()
 }
 
@@ -47,7 +47,7 @@ func Test_GetLedger(t *testing.T) {
 	mux.Lock()
 	defer mux.Unlock()
 
-	ledgerAdmin := NewLedgerAdmin();
+	ledgerAdmin := NewLedgerAdmin()
 	count := ledgerAdmin.CountDevices()
 	require.True(t, count > 0)
 
@@ -62,11 +62,11 @@ func Test_BasicExchange(t *testing.T) {
 	mux.Lock()
 	defer mux.Unlock()
 
-	ledgerAdmin := NewLedgerAdmin();
+	ledgerAdmin := NewLedgerAdmin()
 	count := ledgerAdmin.CountDevices()
 	require.True(t, count > 0)
 
-	ledger, err := ledgerAdmin.Connect(0);
+	ledger, err := ledgerAdmin.Connect(0)
 	defer ledger.Close()
 
 	assert.NoError(t, err)

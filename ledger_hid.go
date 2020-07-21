@@ -92,7 +92,9 @@ func (admin *LedgerAdminHID) CountDevices() int {
 
 func newDevice(dev *hid.Device) *LedgerDeviceHID {
 	return &LedgerDeviceHID{
-		device:  dev,
+		device: dev,
+		readCo: new(sync.Once),
+		readChannel: make(chan []byte),
 	}
 }
 
