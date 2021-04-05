@@ -29,9 +29,8 @@ import (
 const (
 	VendorLedger         = 0x2c97
 	UsagePageLedgerNanoS = 0xffa0
-	//ProductNano     = 1
-	Channel    = 0x0101
-	PacketSize = 64
+	Channel              = 0x0101
+	PacketSize           = 64
 )
 
 type LedgerAdminHID struct{}
@@ -40,6 +39,12 @@ type LedgerDeviceHID struct {
 	device      *hid.Device
 	readCo      *sync.Once
 	readChannel chan []byte
+}
+
+// list of supported product ids as well as their corresponding interfaces
+var supportedLedgerProductID = map[uint16]int{
+	0x4011: 0, // Ledger Nano X
+	0x1011: 0, // Ledger Nano S
 }
 
 func NewLedgerAdmin() *LedgerAdminHID {
@@ -72,9 +77,11 @@ func (admin *LedgerAdminHID) ListDevices() ([]string, error) {
 func isLedgerDevice(d hid.DeviceInfo) bool {
 	deviceFound := d.UsagePage == UsagePageLedgerNanoS
 	// Workarounds for possible empty usage pages
-	return deviceFound ||
-		(d.Product == "Nano S" && d.Interface == 0) ||
-		(d.Product == "Nano X" && d.Interface == 0)
+	if interfaceID, supported := supportedLedgerProductID[d.ProductID]; deviceFound || (supported && (interfaceID == d.Interface)) {
+		return true
+	}
+
+	return false
 }
 
 func (admin *LedgerAdminHID) CountDevices() int {
@@ -92,8 +99,8 @@ func (admin *LedgerAdminHID) CountDevices() int {
 
 func newDevice(dev *hid.Device) *LedgerDeviceHID {
 	return &LedgerDeviceHID{
-		device: dev,
-		readCo: new(sync.Once),
+		device:      dev,
+		readCo:      new(sync.Once),
 		readChannel: make(chan []byte),
 	}
 }
