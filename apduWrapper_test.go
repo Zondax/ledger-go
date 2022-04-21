@@ -211,11 +211,12 @@ func Test_DeserializePacket_FirstPacket(t *testing.T) {
 	var firstPacketHeaderSize = 7
 	packet, _, _ := SerializePacket(0x0101, sampleCommand, packetSize, 0)
 
-	output, totalSize, err := DeserializePacket(0x0101, packet, 0)
+	output, totalSize, isSequenceZero, err := DeserializePacket(0x0101, packet, 0)
 
 	assert.Nil(t, err, "Simple deserialize should not have errors")
 	assert.Equal(t, len(sampleCommand), int(totalSize), "TotalSize is incorrect")
 	assert.Equal(t, packetSize-firstPacketHeaderSize, len(output), "Size of the deserialized packet is wrong")
+	assert.Equal(t, true, isSequenceZero, "Test Case Should Find Sequence == 0")
 	assert.True(t, bytes.Compare(output[:len(sampleCommand)], sampleCommand) == 0, "Deserialized message does not match the original")
 }
 
@@ -226,11 +227,12 @@ func Test_DeserializePacket_SecondMessage(t *testing.T) {
 	var firstPacketHeaderSize = 5 // second packet does not have responseLength (uint16) in the header
 	packet, _, _ := SerializePacket(0x0101, sampleCommand, packetSize, 1)
 
-	output, totalSize, err := DeserializePacket(0x0101, packet, 1)
+	output, totalSize, isSequenceZero, err := DeserializePacket(0x0101, packet, 1)
 
 	assert.Nil(t, err, "Simple deserialize should not have errors")
 	assert.Equal(t, 0, int(totalSize), "TotalSize should not be returned from deserialization of non-first packet")
 	assert.Equal(t, packetSize-firstPacketHeaderSize, len(output), "Size of the deserialized packet is wrong")
+	assert.Equal(t, false, isSequenceZero, "Test Case Should Find Sequence == 1")
 	assert.True(t, bytes.Equal(output[:len(sampleCommand)], sampleCommand), "Deserialized message does not match the original")
 }
 

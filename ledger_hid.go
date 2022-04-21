@@ -23,6 +23,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/zondax/hid"
 )
@@ -59,7 +60,7 @@ func (admin *LedgerAdminHID) ListDevices() ([]string, error) {
 	devices := hid.Enumerate(0, 0)
 
 	if len(devices) == 0 {
-		fmt.Printf("No devices")
+		fmt.Printf("No devices. Ledger LOCKED OR Keplr/Ledger Live may have control of device.")
 	}
 
 	for _, d := range devices {
@@ -130,7 +131,7 @@ func (admin *LedgerAdminHID) Connect(requiredIndex int) (LedgerDevice, error) {
 		}
 	}
 
-	return nil, fmt.Errorf("LedgerHID device (idx %d) not found", requiredIndex)
+	return nil, fmt.Errorf("LedgerHID device (idx %d) not found. Ledger LOCKED OR Keplr/Ledger Live may have control of device", requiredIndex)
 }
 
 func (ledger *LedgerDeviceHID) write(buffer []byte) (int, error) {
@@ -165,17 +166,52 @@ func (ledger *LedgerDeviceHID) readThread() {
 		buffer := make([]byte, PacketSize)
 		readBytes, err := ledger.device.Read(buffer)
 
+		// Check for HID Read Error (May occur even during normal runtime)
 		if err != nil {
-			return
+			continue
 		}
+
+		// Discard all zero packets from Ledger Nano X on macOS
+		allZeros := true
+		for i := 0; i < 64; i++ {
+			if buffer[i] != 0 {
+				allZeros = false
+				break
+			}
+		}
+
+		// Discard all zero packet
+		if allZeros {
+			// HID Returned Empty Packet - Retry Read
+			continue
+		}
+
 		select {
 		case ledger.readChannel <- buffer[:readBytes]:
+			// Send data to UnwrapResponseAPDU
 		default:
+			// Possible source of bugs
+			// Drop a buffer if ledger.readChannel is busy
+		}
+	}
+}
+
+func (ledger *LedgerDeviceHID) drainRead() {
+	// Allow time for late packet arrivals (When main program doesn't read enough packets)
+	<-time.After(50 * time.Millisecond)
+	for {
+		select {
+		case <-ledger.readChannel:
+		default:
+			return
 		}
 	}
 }
 
 func (ledger *LedgerDeviceHID) Exchange(command []byte) ([]byte, error) {
+	// Purge messages that arrived after previous exchange completed
+	ledger.drainRead()
+
 	if len(command) < 5 {
 		return nil, fmt.Errorf("APDU commands should not be smaller than 5")
 	}
