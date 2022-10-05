@@ -45,6 +45,7 @@ type LedgerDeviceHID struct {
 var supportedLedgerProductID = map[uint16]int{
 	0x4011: 0, // Ledger Nano X
 	0x1011: 0, // Ledger Nano S
+	0x1:    0, // Ledger Nano S
 }
 
 func NewLedgerAdmin() *LedgerAdminHID {
