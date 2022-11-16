@@ -1,5 +1,5 @@
 /*******************************************************************************
-*   (c) 2018 ZondaX GmbH
+*   (c) 2018 - 2022 ZondaX AG
 *
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
@@ -50,7 +50,7 @@ func ErrorMessage(errorCode uint16) string {
 	case 0x6D00:
 		return "[APDU_CODE_INS_NOT_SUPPORTED] Instruction code not supported or invalid"
 	case 0x6E00:
-		return "[APDU_CODE_CLA_NOT_SUPPORTED] Class not supported"
+		return "[APDU_CODE_CLA_NOT_SUPPORTED] CLA not supported"
 	case 0x6F00:
 		return "APDU_CODE_UNKNOWN"
 	case 0x6F01:
