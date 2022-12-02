@@ -53,7 +53,7 @@ func ErrorMessage(errorCode uint16) string {
 	case 0x6E00:
 		return "[APDU_CODE_CLA_NOT_SUPPORTED] CLA not supported"
 	case 0x6E01:
-		return "[0x6E01] Ledger Connected but Cosmos App Not Open"
+		return "[0x6E01] Ledger Connected but Chain Specific App Not Open"
 	case 0x6F00:
 		return "APDU_CODE_UNKNOWN"
 	case 0x6F01:

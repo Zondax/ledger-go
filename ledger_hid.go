@@ -60,7 +60,7 @@ func (admin *LedgerAdminHID) ListDevices() ([]string, error) {
 	devices := hid.Enumerate(0, 0)
 
 	if len(devices) == 0 {
-		fmt.Printf("No devices. Ledger LOCKED OR Keplr/Ledger Live may have control of device.")
+		fmt.Printf("No devices. Ledger LOCKED OR Other Program/Web Browser may have control of device.")
 	}
 
 	for _, d := range devices {
@@ -131,7 +131,7 @@ func (admin *LedgerAdminHID) Connect(requiredIndex int) (LedgerDevice, error) {
 		}
 	}
 
-	return nil, fmt.Errorf("LedgerHID device (idx %d) not found. Ledger LOCKED OR Keplr/Ledger Live may have control of device", requiredIndex)
+	return nil, fmt.Errorf("LedgerHID device (idx %d) not found. Ledger LOCKED OR Other Program/Web Browser may have control of device.", requiredIndex)
 }
 
 func (ledger *LedgerDeviceHID) write(buffer []byte) (int, error) {
