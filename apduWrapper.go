@@ -195,6 +195,9 @@ func UnwrapResponseAPDU(channel uint16, pipe <-chan []byte, packetSize int) ([]b
 		buffer := <-pipe
 
 		result, responseSize, isSequenceZero, err = DeserializePacket(channel, buffer, sequenceIdx) // this may fail if the wrong sequence arrives (espeically if left over all 0000 was in the buffer from the last tx)
+		if err != nil {
+			return nil, err
+		}
 
 		// Recover from a known error condition:
 		// * Discard messages left over from previous exchange until isSequenceZero == true
@@ -202,10 +205,6 @@ func UnwrapResponseAPDU(channel uint16, pipe <-chan []byte, packetSize int) ([]b
 			continue
 		}
 		foundZeroSequence = true
-
-		if err != nil {
-			return nil, err
-		}
 
 		// Initialize totalSize (previously we did this if sequenceIdx == 0, but sometimes Nano X can provide the first sequenceIdx == 0 packet with all zeros, then a useful packet with sequenceIdx == 1
 		if totalSize == 0 {

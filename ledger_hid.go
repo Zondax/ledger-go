@@ -173,7 +173,7 @@ func (ledger *LedgerDeviceHID) readThread() {
 
 		// Discard all zero packets from Ledger Nano X on macOS
 		allZeros := true
-		for i := 0; i < 64; i++ {
+		for i := 0; i < len(buffer); i++ {
 			if buffer[i] != 0 {
 				allZeros = false
 				break
