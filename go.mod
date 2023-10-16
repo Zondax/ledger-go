@@ -6,7 +6,7 @@ require (
 	github.com/golang/protobuf v1.5.2
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.7.0
-	github.com/zondax/hid v0.9.1
+	github.com/zondax/hid v0.9.2
 	google.golang.org/grpc v1.50.1
 	google.golang.org/protobuf v1.28.1
 )
