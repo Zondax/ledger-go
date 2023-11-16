@@ -59,7 +59,7 @@ func ErrorMessage(errorCode uint16) string {
 	case 0x6F01:
 		return "APDU_CODE_SIGN_VERIFY_ERROR"
 	default:
-		return fmt.Sprintf("Error code: %04x", errorCode)
+		return fmt.Sprintf("APDU Error Code from Ledger Device: 0x%04x", errorCode)
 	}
 }
 
