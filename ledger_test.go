@@ -36,12 +36,14 @@ func Test_CountLedgerDevices(t *testing.T) {
 	assert.True(t, count > 0)
 }
 
-func Test_ListDevices(t *testing.T) {
-	mux.Lock()
-	defer mux.Unlock()
-
+func TestListDevices(t *testing.T) {
 	ledgerAdmin := NewLedgerAdmin()
-	ledgerAdmin.ListDevices()
+
+	devices, err := ledgerAdmin.ListDevices()
+	if err != nil {
+		t.Fatalf("Error listing devices: %v", err)
+	}
+	assert.NotNil(t, devices, "Devices should not be nil")
 }
 
 func Test_GetLedger(t *testing.T) {
@@ -53,6 +55,9 @@ func Test_GetLedger(t *testing.T) {
 	require.True(t, count > 0)
 
 	ledger, err := ledgerAdmin.Connect(0)
+	if err != nil {
+		t.Fatalf("Error connecting to ledger: %v", err)
+	}
 	defer ledger.Close()
 
 	assert.NoError(t, err)
@@ -68,10 +73,10 @@ func Test_BasicExchange(t *testing.T) {
 	require.True(t, count > 0)
 
 	ledger, err := ledgerAdmin.Connect(0)
+	if err != nil {
+		t.Fatalf("Error connecting to ledger: %v", err)
+	}
 	defer ledger.Close()
-
-	assert.NoError(t, err)
-	assert.NotNil(t, ledger)
 
 	// Call device info (this should work in main menu and many apps)
 	message := []byte{0xE0, 0x01, 0, 0, 0}
@@ -86,4 +91,34 @@ func Test_BasicExchange(t *testing.T) {
 
 		require.True(t, len(response) > 0)
 	}
+}
+
+func TestConnect(t *testing.T) {
+	ledgerAdmin := NewLedgerAdmin()
+
+	ledger, err := ledgerAdmin.Connect(0)
+	if err != nil {
+		t.Fatalf("Error connecting to ledger: %v", err)
+	}
+	defer ledger.Close()
+
+	assert.NotNil(t, ledger, "Ledger should not be nil")
+}
+
+func TestGetVersion(t *testing.T) {
+	ledgerAdmin := NewLedgerAdmin()
+
+	ledger, err := ledgerAdmin.Connect(0)
+	if err != nil {
+		t.Fatalf("Error connecting to ledger: %v", err)
+	}
+	defer ledger.Close()
+
+	// Call device info (this should work in main menu and many apps)
+	message := []byte{0xE0, 0x01, 0, 0, 0}
+
+	response, err := ledger.Exchange(message)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, response, "Response should not be empty")
+
 }
