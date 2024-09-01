@@ -18,6 +18,7 @@ package ledger_go
 
 import (
 	"bytes"
+	"fmt"
 	"math"
 	"testing"
 	"unsafe"
@@ -217,7 +218,7 @@ func Test_DeserializePacket_FirstPacket(t *testing.T) {
 	assert.Equal(t, len(sampleCommand), int(totalSize), "TotalSize is incorrect")
 	assert.Equal(t, packetSize-firstPacketHeaderSize, len(output), "Size of the deserialized packet is wrong")
 	assert.Equal(t, true, isSequenceZero, "Test Case Should Find Sequence == 0")
-	assert.True(t, bytes.Compare(output[:len(sampleCommand)], sampleCommand) == 0, "Deserialized message does not match the original")
+	assert.True(t, bytes.Equal(output[:len(sampleCommand)], sampleCommand), "Deserialized message does not match the original")
 }
 
 func Test_DeserializePacket_SecondMessage(t *testing.T) {
@@ -250,7 +251,7 @@ func Test_UnwrapApdu_SmokeTest(t *testing.T) {
 
 	serialized, _ := WrapCommandAPDU(channel, input, packetSize)
 
-	// Allocate enough buffers to keep all the packets
+	// Allocate enough packets
 	pipe := make(chan []byte, int(math.Ceil(float64(inputSize)/float64(packetSize))))
 	// Send all the packets to the pipe
 	for len(serialized) > 0 {
@@ -260,12 +261,38 @@ func Test_UnwrapApdu_SmokeTest(t *testing.T) {
 
 	output, _ := UnwrapResponseAPDU(channel, pipe, packetSize)
 
-	//fmt.Printf("INPUT     : %x\n", input)
-	//fmt.Printf("SERIALIZED: %x\n", serialized)
-	//fmt.Printf("OUTPUT    : %x\n", output)
+	fmt.Printf("INPUT     : %x\n", input)
+	fmt.Printf("SERIALIZED: %x\n", serialized)
+	fmt.Printf("OUTPUT    : %x\n", output)
 
 	assert.Equal(t, len(input), len(output), "Input and output messages have different size")
 	assert.True(t,
 		bytes.Equal(input, output),
 		"Input message does not match message which was serialized and then deserialized")
+}
+
+func TestSerializePacketWithInvalidSize(t *testing.T) {
+	_, _, err := SerializePacket(0x0101, []byte{1, 2}, 2, 0)
+	assert.ErrorIs(t, err, ErrPacketSize)
+}
+
+func TestDeserializePacketWithInvalidChannel(t *testing.T) {
+	packet := []byte{0x02, 0x02, 0x05, 0x00, 0x00, 0x00, 0x20}
+	_, _, _, err := DeserializePacket(0x0101, packet, 0)
+	assert.ErrorIs(t, err, ErrInvalidChannel)
+}
+
+func TestSerializeDeserialize(t *testing.T) {
+	sampleCommand := []byte{0x01, 0x02, 0x03, 0x04, 0x05}
+	channel := uint16(0x0101)
+	packetSize := 64
+	sequenceIdx := uint16(0)
+
+	packet, _, err := SerializePacket(channel, sampleCommand, packetSize, sequenceIdx)
+	assert.NoError(t, err)
+
+	output, _, _, err := DeserializePacket(channel, packet, sequenceIdx)
+	assert.NoError(t, err)
+
+	assert.True(t, bytes.Equal(output[:len(sampleCommand)], sampleCommand), "Deserialized message does not match the original")
 }
