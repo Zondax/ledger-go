@@ -22,6 +22,7 @@ package ledger_go
 import (
 	"errors"
 	"fmt"
+	"log"
 	"sync"
 	"time"
 
@@ -131,7 +132,7 @@ func (admin *LedgerAdminHID) Connect(requiredIndex int) (LedgerDevice, error) {
 		}
 	}
 
-	return nil, fmt.Errorf("LedgerHID device (idx %d) not found. Ledger LOCKED OR Other Program/Web Browser may have control of device.", requiredIndex)
+	return nil, fmt.Errorf("LedgerHID device (idx %d) not found: device may be locked or in use by another application", requiredIndex)
 }
 
 func (ledger *LedgerDeviceHID) write(buffer []byte) (int, error) {
@@ -209,6 +210,7 @@ func (ledger *LedgerDeviceHID) drainRead() {
 }
 
 func (ledger *LedgerDeviceHID) Exchange(command []byte) ([]byte, error) {
+	log.Printf("Sending command: %X", command)
 	// Purge messages that arrived after previous exchange completed
 	ledger.drainRead()
 
@@ -249,6 +251,7 @@ func (ledger *LedgerDeviceHID) Exchange(command []byte) ([]byte, error) {
 		return response[:swOffset], errors.New(ErrorMessage(sw))
 	}
 
+	log.Printf("Received response: %X", response)
 	return response[:swOffset], nil
 }
 

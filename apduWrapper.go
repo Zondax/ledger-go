@@ -23,7 +23,20 @@ import (
 	"github.com/pkg/errors"
 )
 
+const (
+	MinPacketSize = 3
+	TagValue      = 0x05
+)
+
+
 var codec = binary.BigEndian
+
+var (
+	ErrPacketSize = errors.New("packet size must be at least 3")
+	ErrInvalidChannel = errors.New("invalid channel")
+	ErrInvalidTag = errors.New("invalid tag")
+	ErrWrongSequenceIdx = errors.New("wrong sequenceIdx")
+)
 
 func ErrorMessage(errorCode uint16) string {
 	switch errorCode {
@@ -70,7 +83,7 @@ func SerializePacket(
 	sequenceIdx uint16) (result []byte, offset int, err error) {
 
 	if packetSize < 3 {
-		return nil, 0, errors.New("Packet size must be at least 3")
+		return nil, 0, ErrPacketSize
 	}
 
 	var headerOffset uint8
@@ -119,7 +132,7 @@ func DeserializePacket(
 	var headerOffset uint8
 
 	if codec.Uint16(buffer) != channel {
-		return nil, 0, isSequenceZero, errors.New(fmt.Sprintf("Invalid channel.  Expected %d, Got: %d", channel, codec.Uint16(buffer)))
+		return nil, 0, false, fmt.Errorf("%w: expected %d, got %d", ErrInvalidChannel, channel, codec.Uint16(buffer))
 	}
 	headerOffset += 2
 

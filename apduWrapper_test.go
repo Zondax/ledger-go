@@ -269,3 +269,14 @@ func Test_UnwrapApdu_SmokeTest(t *testing.T) {
 		bytes.Equal(input, output),
 		"Input message does not match message which was serialized and then deserialized")
 }
+
+func TestSerializePacketWithInvalidSize(t *testing.T) {
+	_, _, err := SerializePacket(0x0101, []byte{1, 2}, 2, 0)
+	assert.ErrorIs(t, err, ErrPacketSize)
+}
+
+func TestDeserializePacketWithInvalidChannel(t *testing.T) {
+	packet := []byte{0x02, 0x02, 0x05, 0x00, 0x00, 0x00, 0x20}
+	_, _, _, err := DeserializePacket(0x0101, packet, 0)
+	assert.ErrorIs(t, err, ErrInvalidChannel)
+}

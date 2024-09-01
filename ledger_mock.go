@@ -20,14 +20,15 @@
 package ledger_go
 
 import (
-	"bytes"
 	"encoding/hex"
-	"log"
+	"fmt"
 )
 
 type LedgerAdminMock struct{}
 
-type LedgerDeviceMock struct{}
+type LedgerDeviceMock struct {
+	commands map[string][]byte
+}
 
 func NewLedgerAdmin() *LedgerAdminMock {
 	return &LedgerAdminMock{}
@@ -46,23 +47,20 @@ func (admin *LedgerAdminMock) Connect(deviceIndex int) (*LedgerDeviceMock, error
 	return &LedgerDeviceMock{}, nil
 }
 
-func (ledger *LedgerDeviceMock) Exchange(command []byte) ([]byte, error) {
-	// Some predetermined command/replies
-	infoCommand := []byte{0xE0, 0x01, 0, 0, 0}
-	infoReply, _ := hex.DecodeString("311000040853706563756c6f73000b53706563756c6f734d4355")
-
-	reply := []byte{}
-
-	log.Printf("exchange [mock] >>> %s", hex.EncodeToString(command))
-
-	if bytes.Equal(command, infoCommand) {
-		reply = infoReply
+func NewLedgerDeviceMock() *LedgerDeviceMock {
+	return &LedgerDeviceMock{
+		commands: map[string][]byte{
+			"E001000000": []byte{0x31, 0x10, 0x00, 0x04, 0x08, 0x53, 0x70, 0x65, 0x63, 0x75, 0x6c, 0x6f, 0x73, 0x00, 0x0b, 0x53, 0x70, 0x65, 0x63, 0x75, 0x6c, 0x6f, 0x73, 0x4d, 0x43, 0x55},
+		},
 	}
-	// always return the same
+}
 
-	log.Printf("exchange [mock] <<< %s", hex.EncodeToString(reply))
-
-	return reply, nil
+func (ledger *LedgerDeviceMock) Exchange(command []byte) ([]byte, error) {
+	hexCommand := hex.EncodeToString(command)
+	if reply, ok := ledger.commands[hexCommand]; ok {
+		return reply, nil
+	}
+	return nil, fmt.Errorf("unknown command: %s", hexCommand)
 }
 
 func (ledger *LedgerDeviceMock) Close() error {
