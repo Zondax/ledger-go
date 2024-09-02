@@ -18,14 +18,14 @@ mod-tidy:
 	@go mod tidy
 
 mod-clean:
-	go clean -modcache
+	@go clean -modcache
 
 mod-update: mod-clean
-	@go get -u ./...
+	@go get -u -t all
 	@go mod tidy
 
 generate: mod-tidy
-	go generate ./internal/...
+	@go generate ./internal/...
 
 version: build
 	./output/$(APP_NAME) version
