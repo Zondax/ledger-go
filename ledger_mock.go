@@ -32,7 +32,7 @@ type LedgerDeviceMock struct {
 	commands map[string]string
 }
 
-func NewLedgerAdmin() *LedgerAdminMock {
+func NewLedgerAdmin() LedgerAdmin {
 	return &LedgerAdminMock{}
 }
 
@@ -44,15 +44,13 @@ func (admin *LedgerAdminMock) CountDevices() int {
 	return 1
 }
 
-func (admin *LedgerAdminMock) Connect(deviceIndex int) (*LedgerDeviceMock, error) {
+func (admin *LedgerAdminMock) Connect(deviceIndex int) (LedgerDevice, error) {
 	return NewLedgerDeviceMock(), nil
 }
 
 func NewLedgerDeviceMock() *LedgerDeviceMock {
 	return &LedgerDeviceMock{
-		commands: map[string]string{
-			"e001000000": "311000040853706563756c6f73000b53706563756c6f734d4355",
-		},
+		commands: make(map[string]string),
 	}
 }
 
@@ -62,6 +60,14 @@ func (ledger *LedgerDeviceMock) Exchange(command []byte) ([]byte, error) {
 		return hex.DecodeString(reply)
 	}
 	return nil, fmt.Errorf("unknown command: %s", hexCommand)
+}
+
+func (ledger *LedgerDeviceMock) SetCommandReplies(commands map[string]string) {
+	ledger.commands = commands
+}
+
+func (ledger *LedgerDeviceMock) ClearCommands() {
+	ledger.commands = make(map[string]string)
 }
 
 func (ledger *LedgerDeviceMock) Close() error {

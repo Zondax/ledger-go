@@ -41,3 +41,5 @@ cmake-build-debug/
 \.idea/workspace\.xml
 \.idea/
 vendor/
+
+coverage.txt

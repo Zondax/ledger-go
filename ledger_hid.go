@@ -53,7 +53,7 @@ var supportedLedgerProductID = map[uint16]int{
 	0x5:    0, // Ledger Nano S Plus
 }
 
-func NewLedgerAdmin() *LedgerAdminHID {
+func NewLedgerAdmin() LedgerAdmin {
 	return &LedgerAdminHID{}
 }
 

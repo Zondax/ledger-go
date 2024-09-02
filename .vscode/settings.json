@@ -1,0 +1,18 @@
+{
+    "go.testFlags": [
+        "-tags=ledger_mock",
+        "-v",
+        "-race",
+        "-coverprofile=coverage.txt",
+        "-covermode=atomic"
+    ],
+    "go.coverOnSave": true,
+    "go.coverageOptions": "showUncoveredCodeOnly",
+    "go.coverageDecorator": {
+        "type": "gutter",
+        "coveredHighlightColor": "rgba(64,128,128,0.5)",
+        "uncoveredHighlightColor": "rgba(128,64,64,0.25)",
+        "coveredGutterStyle": "blockblue",
+        "uncoveredGutterStyle": "slashyellow"
+    }
+}

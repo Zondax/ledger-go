@@ -1,3 +1,6 @@
+//go:build ledger_mock
+// +build ledger_mock
+
 /*******************************************************************************
 *   (c) Zondax AG
 *
@@ -96,6 +99,13 @@ func Test_BasicExchange(t *testing.T) {
 	}
 	defer ledger.Close()
 
+	// Set expected replies for the commands (only if using mock)
+	if mockLedger, ok := ledger.(*LedgerDeviceMock); ok {
+		mockLedger.SetCommandReplies(map[string]string{
+			"e001000000": "311000040853706563756c6f73000b53706563756c6f734d4355",
+		})
+	}
+
 	// Call device info (this should work in main menu and many apps)
 	message := []byte{0xE0, 0x01, 0, 0, 0}
 
@@ -132,11 +142,17 @@ func TestGetVersion(t *testing.T) {
 	}
 	defer ledger.Close()
 
+	// Set expected replies for the commands (only if using mock)
+	if mockLedger, ok := ledger.(*LedgerDeviceMock); ok {
+		mockLedger.SetCommandReplies(map[string]string{
+			"e001000000": "311000040853706563756c6f73000b53706563756c6f734d4355",
+		})
+	}
+
 	// Call device info (this should work in main menu and many apps)
 	message := []byte{0xE0, 0x01, 0, 0, 0}
 
 	response, err := ledger.Exchange(message)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, response, "Response should not be empty")
-
 }
