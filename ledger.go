@@ -16,12 +16,14 @@
 
 package ledger_go
 
+// LedgerAdmin defines the interface for managing Ledger devices.
 type LedgerAdmin interface {
 	CountDevices() int
 	ListDevices() ([]string, error)
 	Connect(deviceIndex int) (LedgerDevice, error)
 }
 
+// LedgerDevice defines the interface for interacting with a Ledger device.
 type LedgerDevice interface {
 	Exchange(command []byte) ([]byte, error)
 	Close() error

@@ -49,4 +49,4 @@ lint:
 	golangci-lint run
 
 test:
-	go test -tags ledger_mock -v -race ./...
+	go test -tags ledger_mock -v -race ./... -coverprofile=coverage.txt -covermode=atomic
