@@ -27,13 +27,31 @@ import (
 
 var mux sync.Mutex
 
+func TestLedger(t *testing.T) {
+	tests := []struct {
+		name string
+		test func(t *testing.T)
+	}{
+		{"CountLedgerDevices", Test_CountLedgerDevices},
+		{"ListDevices", TestListDevices},
+		{"GetLedger", Test_GetLedger},
+		{"BasicExchange", Test_BasicExchange},
+		{"Connect", TestConnect},
+		{"GetVersion", TestGetVersion},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, tt.test)
+	}
+}
+
 func Test_CountLedgerDevices(t *testing.T) {
 	mux.Lock()
 	defer mux.Unlock()
 
 	ledgerAdmin := NewLedgerAdmin()
 	count := ledgerAdmin.CountDevices()
-	assert.True(t, count > 0)
+	require.True(t, count > 0)
 }
 
 func TestListDevices(t *testing.T) {

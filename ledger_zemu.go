@@ -27,6 +27,11 @@ import (
 	"google.golang.org/grpc"
 )
 
+const (
+	defaultGrpcURL  = "localhost"
+	defaultGrpcPort = "3002"
+)
+
 type LedgerAdminZemu struct {
 	grpcURL  string
 	grpcPort string
@@ -39,9 +44,8 @@ type LedgerDeviceZemu struct {
 
 func NewLedgerAdmin() *LedgerAdminZemu {
 	return &LedgerAdminZemu{
-		//TODO get this from flag value or from Zemu response
-		grpcURL:  "localhost",
-		grpcPort: "3002",
+		grpcURL:  defaultGrpcURL,
+		grpcPort: defaultGrpcPort,
 	}
 }
 

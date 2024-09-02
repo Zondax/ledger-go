@@ -30,11 +30,18 @@ const (
 
 var codec = binary.BigEndian
 
+const (
+	ErrMsgPacketSize       = "packet size must be at least 3"
+	ErrMsgInvalidChannel   = "invalid channel"
+	ErrMsgInvalidTag       = "invalid tag"
+	ErrMsgWrongSequenceIdx = "wrong sequenceIdx"
+)
+
 var (
-	ErrPacketSize       = errors.New("packet size must be at least 3")
-	ErrInvalidChannel   = errors.New("invalid channel")
-	ErrInvalidTag       = errors.New("invalid tag")
-	ErrWrongSequenceIdx = errors.New("wrong sequenceIdx")
+	ErrPacketSize       = errors.New(ErrMsgPacketSize)
+	ErrInvalidChannel   = errors.New(ErrMsgInvalidChannel)
+	ErrInvalidTag       = errors.New(ErrMsgInvalidTag)
+	ErrWrongSequenceIdx = errors.New(ErrMsgWrongSequenceIdx)
 )
 
 // ErrorMessage returns a human-readable error message for a given APDU error code.

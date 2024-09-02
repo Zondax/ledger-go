@@ -24,10 +24,12 @@ import (
 	"fmt"
 )
 
+const mockDeviceName = "Mock device"
+
 type LedgerAdminMock struct{}
 
 type LedgerDeviceMock struct {
-	commands map[string][]byte
+	commands map[string]string
 }
 
 func NewLedgerAdmin() *LedgerAdminMock {
@@ -35,8 +37,7 @@ func NewLedgerAdmin() *LedgerAdminMock {
 }
 
 func (admin *LedgerAdminMock) ListDevices() ([]string, error) {
-	x := []string{"Mock device"}
-	return x, nil
+	return []string{mockDeviceName}, nil
 }
 
 func (admin *LedgerAdminMock) CountDevices() int {
@@ -49,8 +50,8 @@ func (admin *LedgerAdminMock) Connect(deviceIndex int) (*LedgerDeviceMock, error
 
 func NewLedgerDeviceMock() *LedgerDeviceMock {
 	return &LedgerDeviceMock{
-		commands: map[string][]byte{
-			"e001000000": []byte{0x31, 0x10, 0x00, 0x04, 0x08, 0x53, 0x70, 0x65, 0x63, 0x75, 0x6c, 0x6f, 0x73, 0x00, 0x0b, 0x53, 0x70, 0x65, 0x63, 0x75, 0x6c, 0x6f, 0x73, 0x4d, 0x43, 0x55},
+		commands: map[string]string{
+			"e001000000": "311000040853706563756c6f73000b53706563756c6f734d4355",
 		},
 	}
 }
@@ -58,7 +59,7 @@ func NewLedgerDeviceMock() *LedgerDeviceMock {
 func (ledger *LedgerDeviceMock) Exchange(command []byte) ([]byte, error) {
 	hexCommand := hex.EncodeToString(command)
 	if reply, ok := ledger.commands[hexCommand]; ok {
-		return reply, nil
+		return hex.DecodeString(reply)
 	}
 	return nil, fmt.Errorf("unknown command: %s", hexCommand)
 }

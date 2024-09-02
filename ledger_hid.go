@@ -59,25 +59,28 @@ func NewLedgerAdmin() *LedgerAdminHID {
 
 func (admin *LedgerAdminHID) ListDevices() ([]string, error) {
 	devices := hid.Enumerate(0, 0)
-
 	if len(devices) == 0 {
-		fmt.Printf("No devices. Ledger LOCKED OR Other Program/Web Browser may have control of device.")
+		log.Println("No devices. Ledger LOCKED OR Other Program/Web Browser may have control of device.")
 	}
 
 	for _, d := range devices {
-		fmt.Printf("============ %s\n", d.Path)
-		fmt.Printf("VendorID      : %x\n", d.VendorID)
-		fmt.Printf("ProductID     : %x\n", d.ProductID)
-		fmt.Printf("Release       : %x\n", d.Release)
-		fmt.Printf("Serial        : %x\n", d.Serial)
-		fmt.Printf("Manufacturer  : %s\n", d.Manufacturer)
-		fmt.Printf("Product       : %s\n", d.Product)
-		fmt.Printf("UsagePage     : %x\n", d.UsagePage)
-		fmt.Printf("Usage         : %x\n", d.Usage)
-		fmt.Printf("\n")
+		logDeviceInfo(d)
 	}
 
 	return []string{}, nil
+}
+
+func logDeviceInfo(d hid.DeviceInfo) {
+	log.Printf("============ %s\n", d.Path)
+	log.Printf("VendorID      : %x\n", d.VendorID)
+	log.Printf("ProductID     : %x\n", d.ProductID)
+	log.Printf("Release       : %x\n", d.Release)
+	log.Printf("Serial        : %x\n", d.Serial)
+	log.Printf("Manufacturer  : %s\n", d.Manufacturer)
+	log.Printf("Product       : %s\n", d.Product)
+	log.Printf("UsagePage     : %x\n", d.UsagePage)
+	log.Printf("Usage         : %x\n", d.Usage)
+	log.Printf("\n")
 }
 
 func isLedgerDevice(d hid.DeviceInfo) bool {
