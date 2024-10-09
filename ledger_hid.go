@@ -45,12 +45,13 @@ type LedgerDeviceHID struct {
 }
 
 // list of supported product ids as well as their corresponding interfaces
-var supportedLedgerProductID = map[uint16]int{
-	0x4011: 0, // Ledger Nano X
-	0x1011: 0, // Ledger Nano S
-	0x1:    0, // Ledger Nano S
-	0x5011: 0, // Ledger Nano S Plus
-	0x5:    0, // Ledger Nano S Plus
+// based on https://github.com/LedgerHQ/ledger-live/blob/develop/libs/ledgerjs/packages/devices/src/index.ts
+var supportedLedgerProductID = map[uint8]int{
+	0x40: 0, // Ledger Nano X
+	0x10: 0, // Ledger Nano S
+	0x50: 0, // Ledger Nano S Plus
+	0x60: 0, // Ledger Stax
+	0x70: 0, // Ledger Flex
 }
 
 func NewLedgerAdmin() LedgerAdmin {
@@ -85,8 +86,10 @@ func logDeviceInfo(d hid.DeviceInfo) {
 
 func isLedgerDevice(d hid.DeviceInfo) bool {
 	deviceFound := d.UsagePage == UsagePageLedgerNanoS
+
 	// Workarounds for possible empty usage pages
-	if interfaceID, supported := supportedLedgerProductID[d.ProductID]; deviceFound || (supported && (interfaceID == d.Interface)) {
+	productIDMM := uint8(d.ProductID >> 8)
+	if interfaceID, supported := supportedLedgerProductID[productIDMM]; deviceFound || (supported && (interfaceID == d.Interface)) {
 		return true
 	}
 
