@@ -4,7 +4,6 @@ go 1.21
 
 require (
 	github.com/golang/protobuf v1.5.4
-	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.9.0
 	github.com/zondax/hid v0.9.2
 	google.golang.org/grpc v1.66.0

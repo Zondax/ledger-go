@@ -18,9 +18,8 @@ package ledger_go
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
-
-	"github.com/pkg/errors"
 )
 
 const (
