@@ -22,7 +22,6 @@ package ledger_go
 import (
 	"errors"
 	"fmt"
-	"log"
 	"sync"
 	"time"
 
@@ -61,7 +60,7 @@ func NewLedgerAdmin() LedgerAdmin {
 func (admin *LedgerAdminHID) ListDevices() ([]string, error) {
 	devices := hid.Enumerate(0, 0)
 	if len(devices) == 0 {
-		log.Println("No devices. Ledger LOCKED OR Other Program/Web Browser may have control of device.")
+		debugLogln("No devices. Ledger LOCKED OR Other Program/Web Browser may have control of device.")
 	}
 
 	for _, d := range devices {
@@ -72,16 +71,16 @@ func (admin *LedgerAdminHID) ListDevices() ([]string, error) {
 }
 
 func logDeviceInfo(d hid.DeviceInfo) {
-	log.Printf("============ %s\n", d.Path)
-	log.Printf("VendorID      : %x\n", d.VendorID)
-	log.Printf("ProductID     : %x\n", d.ProductID)
-	log.Printf("Release       : %x\n", d.Release)
-	log.Printf("Serial        : %x\n", d.Serial)
-	log.Printf("Manufacturer  : %s\n", d.Manufacturer)
-	log.Printf("Product       : %s\n", d.Product)
-	log.Printf("UsagePage     : %x\n", d.UsagePage)
-	log.Printf("Usage         : %x\n", d.Usage)
-	log.Printf("\n")
+	debugLog("============ %s\n", d.Path)
+	debugLog("VendorID      : %x\n", d.VendorID)
+	debugLog("ProductID     : %x\n", d.ProductID)
+	debugLog("Release       : %x\n", d.Release)
+	debugLog("Serial        : %x\n", d.Serial)
+	debugLog("Manufacturer  : %s\n", d.Manufacturer)
+	debugLog("Product       : %s\n", d.Product)
+	debugLog("UsagePage     : %x\n", d.UsagePage)
+	debugLog("Usage         : %x\n", d.Usage)
+	debugPrint("\n")
 }
 
 func isLedgerDevice(d hid.DeviceInfo) bool {
@@ -216,7 +215,7 @@ func (ledger *LedgerDeviceHID) drainRead() {
 }
 
 func (ledger *LedgerDeviceHID) Exchange(command []byte) ([]byte, error) {
-	log.Printf("Sending command: %X", command)
+	debugLog("Sending command: %X", command)
 	// Purge messages that arrived after previous exchange completed
 	ledger.drainRead()
 
@@ -257,7 +256,7 @@ func (ledger *LedgerDeviceHID) Exchange(command []byte) ([]byte, error) {
 		return response[:swOffset], errors.New(ErrorMessage(sw))
 	}
 
-	log.Printf("Received response: %X", response)
+	debugLog("Received response: %X", response)
 	return response[:swOffset], nil
 }
 
