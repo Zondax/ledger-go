@@ -60,7 +60,7 @@ func NewLedgerAdmin() LedgerAdmin {
 func (admin *LedgerAdminHID) ListDevices() ([]string, error) {
 	devices := hid.Enumerate(0, 0)
 	if len(devices) == 0 {
-		debugLogln("No devices. Ledger LOCKED OR Other Program/Web Browser may have control of device.")
+		log.Debug("No devices. Ledger LOCKED OR Other Program/Web Browser may have control of device.")
 	}
 
 	for _, d := range devices {
@@ -71,16 +71,15 @@ func (admin *LedgerAdminHID) ListDevices() ([]string, error) {
 }
 
 func logDeviceInfo(d hid.DeviceInfo) {
-	debugLog("============ %s\n", d.Path)
-	debugLog("VendorID      : %x\n", d.VendorID)
-	debugLog("ProductID     : %x\n", d.ProductID)
-	debugLog("Release       : %x\n", d.Release)
-	debugLog("Serial        : %x\n", d.Serial)
-	debugLog("Manufacturer  : %s\n", d.Manufacturer)
-	debugLog("Product       : %s\n", d.Product)
-	debugLog("UsagePage     : %x\n", d.UsagePage)
-	debugLog("Usage         : %x\n", d.Usage)
-	debugPrint("\n")
+	log.Debugf("============ %s", d.Path)
+	log.Debugf("VendorID      : %x", d.VendorID)
+	log.Debugf("ProductID     : %x", d.ProductID)
+	log.Debugf("Release       : %x", d.Release)
+	log.Debugf("Serial        : %x", d.Serial)
+	log.Debugf("Manufacturer  : %s", d.Manufacturer)
+	log.Debugf("Product       : %s", d.Product)
+	log.Debugf("UsagePage     : %x", d.UsagePage)
+	log.Debugf("Usage         : %x", d.Usage)
 }
 
 func isLedgerDevice(d hid.DeviceInfo) bool {
@@ -215,7 +214,7 @@ func (ledger *LedgerDeviceHID) drainRead() {
 }
 
 func (ledger *LedgerDeviceHID) Exchange(command []byte) ([]byte, error) {
-	debugLog("Sending command: %X", command)
+	log.Debugf("Sending command: %X", command)
 	// Purge messages that arrived after previous exchange completed
 	ledger.drainRead()
 
@@ -256,7 +255,7 @@ func (ledger *LedgerDeviceHID) Exchange(command []byte) ([]byte, error) {
 		return response[:swOffset], errors.New(ErrorMessage(sw))
 	}
 
-	debugLog("Received response: %X", response)
+	log.Debugf("Received response: %X", response)
 	return response[:swOffset], nil
 }
 

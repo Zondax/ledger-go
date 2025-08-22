@@ -1,6 +1,3 @@
-//go:build !debug
-// +build !debug
-
 /*******************************************************************************
 *   (c) Zondax AG
 *
@@ -19,11 +16,33 @@
 
 package ledger_go
 
-// debugLog is a no-op when not compiled with -tags debug
-func debugLog(format string, v ...interface{}) {}
+import (
+	"os"
+	"strings"
 
-// debugLogln is a no-op when not compiled with -tags debug
-func debugLogln(v ...interface{}) {}
+	"github.com/zondax/golem/pkg/logger"
+)
 
-// debugPrint is a no-op when not compiled with -tags debug
-func debugPrint(format string, v ...interface{}) {}
+var log *logger.Logger
+
+func init() {
+	initLogger()
+}
+
+func initLogger() {
+	level := getLogLevel()
+	config := logger.Config{
+		Level:    level,
+		Encoding: "console",
+	}
+
+	log = logger.NewLogger(config)
+}
+
+func getLogLevel() string {
+	level := os.Getenv("LEDGER_LOG_LEVEL")
+	if level == "" {
+		level = "info" //default to info
+	}
+	return strings.ToLower(level)
+}

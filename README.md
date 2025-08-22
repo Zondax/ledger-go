@@ -10,6 +10,15 @@ It handles APDU encapsulation, Zemu and USB (HID) communication.
 Linux, OSX and Windows are supported.
 
 ## Building
+
 ```bash
 go build
+```
+
+## Debug Log
+
+Set the environment variable `LEDGER_LOG_LEVEL` to `debug` to enable debug logging.
+
+```bash
+LEDGER_LOG_LEVEL=debug
 ```
