@@ -33,7 +33,7 @@ const (
 
 // PrepareChunks splits the transaction data into chunks for sending to the Ledger device
 // This matches the exact implementation from ledger-filecoin-go and ledger-avalanche-go
-func PrepareChunks(bip44PathBytes []byte, transaction []byte) ([][]byte, error) {
+func PrepareChunks(bip44PathBytes []byte, transaction []byte) [][]byte {
 	var packetIndex = 0
 	// first chunk + number of chunk needed for transaction
 	var packetCount = 1 + int(math.Ceil(float64(len(transaction))/float64(DefaultChunkSize)))
@@ -56,7 +56,7 @@ func PrepareChunks(bip44PathBytes []byte, transaction []byte) ([][]byte, error) 
 		packetIndex++
 	}
 
-	return chunks, nil
+	return chunks
 }
 
 // ErrorHandler is a function type for custom error handling in ProcessChunks

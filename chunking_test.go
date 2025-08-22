@@ -64,11 +64,8 @@ func TestPrepareChunks(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			chunks, err := PrepareChunks(tt.bip44PathBytes, tt.transaction)
-			if err != nil {
-				t.Fatalf("PrepareChunks failed: %v", err)
-			}
-			
+			chunks := PrepareChunks(tt.bip44PathBytes, tt.transaction)
+
 			if len(chunks) != tt.expected {
 				t.Errorf("Expected %d chunks, got %d", tt.expected, len(chunks))
 			}
@@ -80,11 +77,11 @@ func TestPrepareChunks(t *testing.T) {
 
 			// Verify transaction data is properly chunked
 			if len(tt.transaction) > 0 {
-				reconstructed := []byte{}
+				reconstructed := make([]byte, 0, len(tt.transaction))
 				for i := 1; i < len(chunks); i++ {
 					reconstructed = append(reconstructed, chunks[i]...)
 				}
-				
+
 				if !bytes.Equal(reconstructed, tt.transaction) {
 					t.Error("Transaction data not properly chunked")
 				}
@@ -126,7 +123,7 @@ func TestBuildChunkedAPDU(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := BuildChunkedAPDU(tt.cla, tt.ins, tt.p1, tt.p2, tt.data)
-			
+
 			if !bytes.Equal(result, tt.expected) {
 				t.Errorf("Expected %X, got %X", tt.expected, result)
 			}
