@@ -75,38 +75,42 @@ func (admin *LedgerAdminZemu) Connect(deviceIndex int) (*LedgerDeviceZemu, error
 	return &LedgerDeviceZemu{connection: conn, client: client}, nil
 }
 
-func (ledger *LedgerDeviceZemu) Exchange(command []byte) ([]byte, error) {
-
+func (ledger *LedgerDeviceZemu) ExchangeNoCheck(command []byte) ([]byte, uint16, error) {
 	if len(command) < 5 {
-		return nil, fmt.Errorf("APDU commands should not be smaller than 5")
+		return nil, 0, fmt.Errorf("APDU commands should not be smaller than 5")
 	}
 
 	if (byte)(len(command)-5) != command[4] {
-		return nil, fmt.Errorf("APDU[data length] mismatch")
+		return nil, 0, fmt.Errorf("APDU[data length] mismatch")
 	}
 
 	// Send to Zemu and return reply or error
 	r, err := ledger.client.Exchange(context.Background(), &ExchangeRequest{Command: command})
-
 	if err != nil {
-		err = fmt.Errorf("could not call rpc service: %q", err)
-		return []byte{}, err
+		return nil, 0, fmt.Errorf("could not call rpc service: %q", err)
 	}
 
 	response := r.Reply
 
 	if len(response) < 2 {
-		return nil, fmt.Errorf("len(response) < 2")
+		return nil, 0, fmt.Errorf("len(response) < 2")
 	}
 
 	swOffset := len(response) - 2
 	sw := codec.Uint16(response[swOffset:])
 
-	if sw != 0x9000 {
-		return response[:swOffset], errors.New(ErrorMessage(sw))
-	}
+	return response[:swOffset], sw, nil
+}
 
-	return response[:swOffset], nil
+func (ledger *LedgerDeviceZemu) Exchange(command []byte) ([]byte, error) {
+	response, sw, err := ledger.ExchangeNoCheck(command)
+	if err != nil {
+		return nil, err
+	}
+	if sw != 0x9000 {
+		return response, errors.New(ErrorMessage(sw))
+	}
+	return response, nil
 }
 
 func (ledger *LedgerDeviceZemu) Close() error {

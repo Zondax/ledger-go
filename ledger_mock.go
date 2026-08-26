@@ -54,6 +54,14 @@ func NewLedgerDeviceMock() *LedgerDeviceMock {
 	}
 }
 
+func (ledger *LedgerDeviceMock) ExchangeNoCheck(command []byte) ([]byte, uint16, error) {
+	response, err := ledger.Exchange(command)
+	if err != nil {
+		return nil, 0, err
+	}
+	return response, 0x9000, nil
+}
+
 func (ledger *LedgerDeviceMock) Exchange(command []byte) ([]byte, error) {
 	hexCommand := hex.EncodeToString(command)
 	if reply, ok := ledger.commands[hexCommand]; ok {
