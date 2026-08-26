@@ -25,6 +25,7 @@ type LedgerAdmin interface {
 
 // LedgerDevice defines the interface for interacting with a Ledger device.
 type LedgerDevice interface {
+	ExchangeNoCheck(command []byte) ([]byte, uint16, error)
 	Exchange(command []byte) ([]byte, error)
 	Close() error
 }
